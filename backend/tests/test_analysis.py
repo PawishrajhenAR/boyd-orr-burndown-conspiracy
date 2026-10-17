@@ -5,7 +5,9 @@ break exactly one rule (or none), so every rule can be checked precisely.
 """
 import pytest
 
-from app.analysis.rules import run_rules
+from app.analysis.rules import FlagFactory, run_rules
+from app.analysis.testimony import annotate_statements, is_hypothetical
+from app.config import rule_config
 from app.analysis.timeutil import hhmm, overlap
 from app.models import Building, Lecture, Statement, Student, Visit
 from app.pipeline.run import CleanData
@@ -46,7 +48,8 @@ def make_tiny_case() -> CleanData:
 
     students = [
         # Ann: perfectly clean. CS lecture once, library in the evening.
-        student("S1", "Ann Clean", "Computing Science", 24, cs_lecture, "boyd-orr-building"),
+        student("S1", "Ann Clean", "Computing Science", 24, cs_lecture, "boyd-orr-building",
+                societies=["Soup Society", "Chess Club"], has_statement=True),
         # Ben: lecture fine, but back in Boyd Orr at 22:08 (closes 21:00)      -> out_of_hours
         student("S2", "Ben Late", "Computing Science", 23, cs_lecture, "boyd-orr-building"),
         # Cat: 17 years old at The Hive (18+ only)                            -> age_restricted_venue
@@ -58,7 +61,7 @@ def make_tiny_case() -> CleanData:
         # Fay: in her lecture only 10:00-11:30 (slot ends 12:00)              -> left_lecture_early
         student("S6", "Fay Early", "Computing Science", 22, cs_lecture, "boyd-orr-building"),
         # Gus: studies a subject that has no lecture anywhere                  -> subject_without_lecture + missing_lecture
-        student("S7", "Gus Nocourse", "Pharmacy", 21),
+        student("S7", "Gus Nocourse", "Pharmacy", 21, has_statement=True),
         # Hal: logs filed under 'x8', statement under 's8'                     -> id_mismatch + id_format
         student("S8", "Hal Mixup", "Computing Science", 25, cs_lecture, "boyd-orr-building",
                 has_statement=True, raw_ids=["S8", "X8", "s8"]),
@@ -87,6 +90,13 @@ def make_tiny_case() -> CleanData:
                   claims=[]),
         Statement(student_id="S8", raw_student_id="s8", name="Hal Mixup",
                   text="I was at my lecture in the Boyd Orr all morning.", claims=[]),
+        # Ann: mentions the Hive only hypothetically, and a society she IS in -> no flags
+        Statement(student_id="S1", raw_student_id="S1", name="Ann Clean",
+                  text="Lecture at the Boydy, then I was tempted to go to the Hive, but I studied in the library "
+                       "with the Soup Society instead of going out.", claims=[]),
+        # Gus: claims a society he is not in                                  -> false_society_claim
+        Statement(student_id="S7", raw_student_id="S7", name="Gus Nocourse",
+                  text="I went to a soup society meeting in the library.", claims=[]),
     ]
 
     aliases = {}
@@ -168,3 +178,46 @@ def test_multiple_lectures(tiny):
     tiny.visits[0] = tiny.visits[0].model_copy(update={"end": 650})
     tiny.visits.append(tiny.visits[0].model_copy(update={"id": "v0103", "start": 660, "end": 720}))
     assert rules_by_student(run_rules(tiny))["S1"] == {"multiple_lectures"}
+
+
+# ---------- Step 3 tests: testimony annotation ----------
+
+def all_flags(clean):
+    """Log rules + testimony flags, sharing one FlagFactory so IDs stay unique."""
+    ff = FlagFactory(rule_config)
+    log_flags = run_rules(clean, ff=ff)
+    statements, t_flags = annotate_statements(clean, ff, log_flags)
+    return statements, log_flags + t_flags
+
+
+def test_testimony_flags_exactly_the_planned_students(tiny):
+    _, flags = all_flags(tiny)
+    got = rules_by_student(flags)
+    assert got["S4"] == {"missing_lecture", "statement_contradiction"}   # claims Main Building + a lecture
+    assert got["S7"] == {"subject_without_lecture", "missing_lecture", "false_society_claim"}
+    assert got["S8"] == {"id_mismatch", "id_format"}                      # his claim (Boyd Orr) is true
+    assert "S1" not in got                                                # hypothetical Hive -> no flag
+
+
+def test_claims_have_positions_and_status(tiny):
+    statements, _ = all_flags(tiny)
+    ann = next(s for s in statements if s.student_id == "S1")
+    by_place = {c.building_id: c for c in ann.claims}
+    assert set(by_place) == {"boyd-orr-building", "the-hive", "library"}
+    assert by_place["the-hive"].hypothetical is True
+    assert by_place["boyd-orr-building"].matched_visit_id == "v0001"
+    c = by_place["boyd-orr-building"]
+    assert ann.text[c.char_start:c.char_end] == "Boydy"                  # positions point at the word
+
+
+def test_dan_gets_two_contradictions_with_spans(tiny):
+    _, flags = all_flags(tiny)
+    dan = [f for f in flags if f.student_id == "S4" and f.rule == "statement_contradiction"]
+    assert len(dan) == 2                                                  # Main Building + "lecture"
+    assert all(f.statement_span is not None for f in dan)
+
+
+def test_hypothetical_cues():
+    assert is_hypothetical("I was tempted to go to Hive but I was shattered", 23)
+    assert is_hypothetical("I already had a plan to go to HIVE.", 30)
+    assert not is_hypothetical("Then I headed to the Adam Smith to close up a group project.", 21)
