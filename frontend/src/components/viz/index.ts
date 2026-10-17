@@ -13,6 +13,7 @@ export {
   verdictColor,
   useVisibleFlags,
   useSvgSize,
+  observeResize,
   isOpenAt,
   TOKENS,
   NETWORK,

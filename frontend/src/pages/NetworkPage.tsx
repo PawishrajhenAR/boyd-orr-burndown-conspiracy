@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import * as d3 from 'd3'
 import TimeSlider from '../components/viz/TimeSlider'
-import { hhmm, NETWORK, verdictColor } from '../components/viz/util'
+import { hhmm, NETWORK, observeResize, verdictColor } from '../components/viz/util'
 import { flagsFor, meetingsUntil, suspectFor, useCaseStore } from '../store/useCaseStore'
 import type { Case, Meeting, Student, Suspect, Verdict } from '../types/case'
 
@@ -157,7 +157,22 @@ function DetailsPanel({
             {student.year} · {student.age}
           </dd>
           <dt>Hair</dt>
-          <dd>{student.hair_colour}</dd>
+          <dd style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {student.hair_colour?.startsWith('#') ? (
+              <span
+                title={student.hair_colour}
+                style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: 4,
+                  background: student.hair_colour,
+                  border: '1px solid #2a3355',
+                  display: 'inline-block',
+                }}
+              />
+            ) : null}
+            {student.hair_colour}
+          </dd>
         </dl>
       ),
     },
@@ -617,15 +632,14 @@ export default function NetworkPage() {
     // Store applicator for replayTime effect
     ;(svgEl as SVGSVGElement & { __applyVis?: () => void }).__applyVis = applyVisibility
 
-    const ro = new ResizeObserver(() => {
+    const stopRo = observeResize(wrap, () => {
       const rect = wrap.getBoundingClientRect()
       sim.force('center', d3.forceCenter(rect.width / 2, rect.height / 2))
       sim.alpha(0.15).restart()
     })
-    ro.observe(wrap)
 
     return () => {
-      ro.disconnect()
+      stopRo()
       sim.stop()
       simRef.current = null
       delete (svgEl as SVGSVGElement & { __applyVis?: () => void }).__applyVis

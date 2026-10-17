@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { select } from 'd3'
 import { useCaseStore } from '../../store/useCaseStore'
-import { hhmm, timeScale, useVisibleFlags, TOKENS } from './util'
+import { hhmm, observeResize, timeScale, useVisibleFlags, TOKENS } from './util'
 
 const BAR_H = 88
 const TRACK_H = 10
@@ -125,9 +125,7 @@ export default function TimeSlider() {
     }
 
     draw()
-    const ro = new ResizeObserver(draw)
-    ro.observe(el)
-    return () => ro.disconnect()
+    return observeResize(el, draw)
   }, [tMin, tMax, replayTime, flagTimes])
 
   const onPointer = (clientX: number) => {
@@ -146,8 +144,13 @@ export default function TimeSlider() {
       className="time-slider"
       style={{
         height: BAR_H,
+        flexShrink: 0,
+        position: 'sticky',
+        bottom: 0,
+        zIndex: 30,
         background: TOKENS.panel,
         borderTop: `2px solid ${TOKENS.panelBorder}`,
+        boxShadow: '0 -8px 24px rgba(0,0,0,0.35)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',

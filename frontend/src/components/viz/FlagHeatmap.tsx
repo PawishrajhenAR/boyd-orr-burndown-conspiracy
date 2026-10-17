@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { select } from 'd3'
 import { useCaseStore } from '../../store/useCaseStore'
-import { useVisibleFlags, hhmm, TOKENS } from './util'
+import { useVisibleFlags, hhmm, observeResize, TOKENS } from './util'
 
 const PAD = { top: 36, right: 12, bottom: 28, left: 120 }
 const CELL_MIN = 14
@@ -168,9 +168,7 @@ export default function FlagHeatmap() {
     }
 
     draw()
-    const ro = new ResizeObserver(draw)
-    ro.observe(wrap)
-    return () => ro.disconnect()
+    return observeResize(wrap, draw)
   }, [
     caseData,
     buildings,

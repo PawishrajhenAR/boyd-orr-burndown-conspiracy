@@ -7,7 +7,7 @@ import {
   buildingById,
   studentById,
 } from '../../store/useCaseStore'
-import { hhmm, isOpenAt, timeScale, TOKENS } from './util'
+import { hhmm, isOpenAt, observeResize, timeScale, TOKENS } from './util'
 
 interface Props {
   studentId: string
@@ -186,9 +186,7 @@ export default function DayTimeline({ studentId }: Props) {
     }
 
     draw()
-    const ro = new ResizeObserver(draw)
-    ro.observe(wrap)
-    return () => ro.disconnect()
+    return observeResize(wrap, draw)
   }, [
     caseData,
     studentId,

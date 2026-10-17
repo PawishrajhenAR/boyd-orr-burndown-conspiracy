@@ -45,6 +45,21 @@ export function useVisibleFlags(): Flag[] {
   return flags.filter((f) => revealedFlagIds.has(f.id))
 }
 
+/** ResizeObserver that schedules work on rAF (avoids loop-notification floods). */
+export function observeResize(el: Element, onResize: () => void): () => void {
+  let raf = 0
+  const schedule = () => {
+    cancelAnimationFrame(raf)
+    raf = requestAnimationFrame(onResize)
+  }
+  const ro = new ResizeObserver(schedule)
+  ro.observe(el)
+  return () => {
+    cancelAnimationFrame(raf)
+    ro.disconnect()
+  }
+}
+
 export function useSvgSize(ref: RefObject<Element | null>): {
   width: number
   height: number
@@ -64,9 +79,7 @@ export function useSvgSize(ref: RefObject<Element | null>): {
     }
 
     measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(el)
-    return () => ro.disconnect()
+    return observeResize(el, measure)
   }, [ref])
 
   return size

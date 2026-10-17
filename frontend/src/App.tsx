@@ -4,28 +4,20 @@ import { useCaseStore } from './store/useCaseStore'
 import MapPage from './pages/MapPage'
 import TimelinePage from './pages/TimelinePage'
 import NetworkPage from './pages/NetworkPage'
+import VizLabPage from './pages/VizLabPage'
 import HomePage from './pages/HomePage'
+import { hhmm } from './components/viz/util'
 
 export default function App() {
   const loadCase = useCaseStore((s) => s.loadCase)
   const c = useCaseStore((s) => s.case)
-  const isPlaying = useCaseStore((s) => s.isPlaying)
-  const setReplayTime = useCaseStore((s) => s.setReplayTime)
   const replayTime = useCaseStore((s) => s.replayTime)
 
   useEffect(() => {
     void loadCase()
   }, [loadCase])
 
-  useEffect(() => {
-    if (!isPlaying || !c) return
-    const id = window.setInterval(() => {
-      const next = replayTime + 5
-      const max = c.meta.time_max
-      setReplayTime(next > max ? c.meta.time_min : next)
-    }, 100)
-    return () => clearInterval(id)
-  }, [isPlaying, c, replayTime, setReplayTime])
+  // Play/scrub is owned by <TimeSlider /> — do not duplicate the interval here.
 
   return (
     <div className="app-shell">
@@ -38,9 +30,12 @@ export default function App() {
           <NavLink to="/map">Map</NavLink>
           <NavLink to="/timeline">Timeline</NavLink>
           <NavLink to="/network">Network</NavLink>
+          <NavLink to="/lab">Lab</NavLink>
         </nav>
-        <span style={{ fontSize: 12, color: 'var(--muted-dark)' }}>
-          {c ? `${c.meta.counts.students} students · judge mode` : 'Loading…'}
+        <span style={{ fontSize: 12, color: 'var(--muted-dark)', fontFamily: 'var(--font-mono)' }}>
+          {c
+            ? `${c.meta.counts.students} students · ${hhmm(replayTime)} · judge`
+            : 'Loading…'}
         </span>
       </header>
       <main className="main">
@@ -49,6 +44,7 @@ export default function App() {
           <Route path="/map" element={<MapPage />} />
           <Route path="/timeline" element={<TimelinePage />} />
           <Route path="/network" element={<NetworkPage />} />
+          <Route path="/lab" element={<VizLabPage />} />
         </Routes>
       </main>
     </div>
