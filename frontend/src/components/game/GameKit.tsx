@@ -1,6 +1,8 @@
-import type { ButtonHTMLAttributes, ReactNode, CSSProperties } from 'react'
+import { useState, type ButtonHTMLAttributes, type ReactNode, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import type { Student, Verdict } from '../../types/case'
+import { soundIsMuted, toggleSound } from './audio'
+import { useCaseStore } from '../../store/useCaseStore'
 
 export function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <section className={`panel ${className}`}>{children}</section>
@@ -31,4 +33,4 @@ export function Polaroid({ student, status, verdict, onClick }: { student: Stude
 
 export function SpeechBubble({ speaker, children }: { speaker: string; children: ReactNode }) { return <div className="speech"><b>{speaker}</b><p>{children}</p></div> }
 export function StickyNote({ children }: { children: ReactNode }) { return <aside className="sticky">{children}</aside> }
-export function NavRail() { return <nav className="nav-rail"><Link to="/board">Board</Link><Link to="/hq">HQ</Link><Link to="/map">Map</Link><Link to="/timeline">Timeline</Link><Link to="/network">Network</Link><Link to="/evidence">Evidence</Link></nav> }
+export function NavRail() { const [muted, setMuted] = useState(soundIsMuted()); const caseData = useCaseStore((s) => s.case); return <nav className="nav-rail"><span className="demo-badge" title="Running from the bundled sample case until the API is ready">{caseData ? 'DEMO CASE' : 'LOADING'}</span><Link to="/board">Board</Link><Link to="/hq">HQ</Link><Link to="/map">Map</Link><Link to="/timeline">Timeline</Link><Link to="/network">Network</Link><Link to="/evidence">Evidence</Link><button className="sound-toggle" onClick={() => setMuted(toggleSound())} aria-label={muted ? 'Enable sound' : 'Mute sound'}>{muted ? 'Sound off' : 'Sound on'}</button></nav> }
