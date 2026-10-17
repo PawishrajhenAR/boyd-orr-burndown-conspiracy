@@ -8,13 +8,18 @@
 ```
 data/raw/     ← challenge CSVs + statements
 docs/         ← design_reference.png + challenge-brief.pdf
-prompts/      ← this pack
+prompts/      ← this pack (+ SEND_TO_TEAMMATES.md)
+backend/      ← P3 / P1 / P2 (stubs ready — fill your TODOs)
+frontend/     ← P4 shell + P5 viz
+teamate/      ← your worklog folder P{N}-YOURNAME
+OWNERS.md     ← who may edit what
 ```
 
 3. Open your AI coding assistant **with this repo as the workspace**
 4. Paste **your** `PROMPT_N_*.md` file in full
 5. Attach `docs/design_reference.png` if your tool accepts images
-6. Only edit files your role owns (section 5 of your prompt). Message the owner for anything else.
+6. Only edit files your role owns (section 5 of your prompt / `OWNERS.md`). Message the owner for anything else.
+7. Log your steps under `teamate/P{N}-YOURNAME/` (same idea as `teamate/P5-PAWISH/`).
 
 Every prompt shares the same **Shared Context** (data, contract, structure, design). If the contract changes,
 **P3** updates `models.py` + `case.ts` and tells the team — don’t edit the shared section alone.

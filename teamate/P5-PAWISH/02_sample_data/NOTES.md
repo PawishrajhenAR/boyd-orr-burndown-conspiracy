@@ -15,4 +15,4 @@ Charts must run before P1–P3 finish the real pipeline. Sample data includes:
 ## Files
 
 - `frontend/public/case.sample.json` (and copy `case.json` for fallback)  
-- Mirror: `Pawish/02_sample_data/case.sample.json`
+- Mirror: `teamate/P5-PAWISH/02_sample_data/case.sample.json`

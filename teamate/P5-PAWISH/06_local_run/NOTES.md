@@ -30,4 +30,4 @@ npm run dev -- --host 127.0.0.1 --port 5173
 
 ## Cursor + Pawish credit
 
-Implemented by **Pawish** (P5) with **Cursor** multi-agent assistance. Prompt recorded in `Pawish/00_prompt/`.
+Implemented by **Pawish** (P5) with **Cursor** multi-agent assistance. Prompt recorded in `teamate/P5-PAWISH/00_prompt/`.

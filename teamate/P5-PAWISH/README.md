@@ -1,4 +1,6 @@
-# Pawish — P5 Visualisation Developer (local worklog)
+# P5-PAWISH — Visualisation Developer (local worklog)
+
+**Path:** `teamate/P5-PAWISH/`
 
 **Person:** Pawish (Person 5)  
 **Role:** Visualisation Developer (D3 + React)  

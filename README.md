@@ -1,8 +1,10 @@
 # The Boyd Orr Burndown Conspiracy
 
-GUTS / SAS hackathon case: find **6 conspirators** and **1 mastermind** in messy campus security data — and ship a **creative visualisation** (that’s what scores).
+GUTS / SAS hackathon case: find **6 conspirators** and **1 mastermind** in messy campus data — and ship a **creative visualisation**.
 
-## Quick start (humans + AI agents)
+Repo: https://github.com/PawishrajhenAR/boyd-orr-burndown-conspiracy
+
+## Quick start
 
 ```bash
 git clone https://github.com/PawishrajhenAR/boyd-orr-burndown-conspiracy.git
@@ -10,67 +12,48 @@ cd boyd-orr-burndown-conspiracy
 ```
 
 1. Read [`prompts/00_START_HERE.md`](prompts/00_START_HERE.md) (5 minutes).
-2. Pick your role prompt and paste the **whole file** into your AI coding agent (Cursor, Claude Code, Copilot, etc.) **with this repo as the workspace**.
-3. Attach [`docs/design_reference.png`](docs/design_reference.png) if your tool accepts images.
+2. Paste **your** role prompt into your AI agent (whole file).
+3. Attach [`docs/design_reference.png`](docs/design_reference.png) if the tool accepts images.
+4. Only edit files you own — see [`OWNERS.md`](OWNERS.md).
+5. Messages to send teammates: [`prompts/SEND_TO_TEAMMATES.md`](prompts/SEND_TO_TEAMMATES.md).
 
 | Role | Prompt | Owns |
 |------|--------|------|
 | P1 Data Engineer | [`prompts/PROMPT_1_Data_Engineer.md`](prompts/PROMPT_1_Data_Engineer.md) | `backend/app/pipeline/*` |
 | P2 Detective Analyst | [`prompts/PROMPT_2_Detective_Analyst.md`](prompts/PROMPT_2_Detective_Analyst.md) | `backend/app/analysis/*` |
-| P3 Backend & Integration | [`prompts/PROMPT_3_Backend_Lead.md`](prompts/PROMPT_3_Backend_Lead.md) | API, contract, deploy, glue |
-| P4 Front-end Game Lead | [`prompts/PROMPT_4_Front_end_Lead.md`](prompts/PROMPT_4_Front_end_Lead.md) | React shell, pages, store |
-| P5 Visualisation Dev | [`prompts/PROMPT_5_Visualisation_Developer.md`](prompts/PROMPT_5_Visualisation_Developer.md) | D3 charts (map / timeline / network) |
+| P3 Backend & Integration | [`prompts/PROMPT_3_Backend_Lead.md`](prompts/PROMPT_3_Backend_Lead.md) | API, contract, export |
+| P4 Front-end Game Lead | [`prompts/PROMPT_4_Front_end_Lead.md`](prompts/PROMPT_4_Front_end_Lead.md) | React shell, game pages |
+| P5 Visualisation | [`prompts/PROMPT_5_Visualisation_Developer.md`](prompts/PROMPT_5_Visualisation_Developer.md) | D3 viz + Map/Timeline/Network |
 
-AI agents: also read [`AGENTS.md`](AGENTS.md).
-
-## Repo layout
+## Repo layout (matches the prompts)
 
 ```
-├── README.md                 ← you are here
-├── AGENTS.md                 ← rules for AI coding agents
-├── data/raw/                 ← challenge CSVs + statements (do not invent extra raw files)
-│   ├── people_data.csv
-│   ├── location_data.csv
-│   ├── security_logs.csv
-│   └── student_statements.txt
-├── docs/
-│   ├── design_reference.png  ← UI look (corkboard detective game)
-│   └── challenge-brief.pdf   ← official organiser brief
-├── prompts/                  ← paste these into your AI agent
-├── frontend/                 ← Vite app (P5 viz: /map /timeline /network)
-├── Pawish/                   ← P5 worklog (prompt + step notes)
-└── backend/                  ← created by P3 during the hack
+├── README.md / AGENTS.md / OWNERS.md
+├── prompts/                  role prompts + SEND_TO_TEAMMATES.md
+├── data/raw/                 challenge CSVs + statements
+├── docs/                     design_reference.png + challenge-brief.pdf
+├── backend/                  P3 glue · P1 pipeline · P2 analysis (stubs ready)
+├── frontend/                 Vite app (P5 viz live; P4 game pages stubbed)
+└── teamate/                  per-person worklogs (P5-PAWISH done)
 ```
 
-### Run the viz (P5 local)
+### Run viz (P5)
 
 ```bash
-cd frontend
-npm install
-npm run dev
+cd frontend && npm install && npm run dev
 ```
 
-Open http://localhost:5173/ — Map, Timeline, Network.
+Open http://localhost:5173/ — Map · Timeline · Network.
 
-## Data (summary)
+### Backend (when P3 fills stubs)
 
-| File | What it is |
-|------|------------|
-| `data/raw/people_data.csv` | 163 student profiles |
-| `data/raw/location_data.csv` | 14 buildings (GPS, hours, lecture text in descriptions) |
-| `data/raw/security_logs.csv` | 662 access logs for one day |
-| `data/raw/student_statements.txt` | 25 interview testimonies |
+```bash
+cd backend && pip install -r requirements.txt
+# uvicorn app.main:app --reload --port 8000
+```
 
-**Game rules:** students attend their mandatory lecture once; no out-of-hours building access; the mastermind’s day looks clean except they met every conspirator.
+## Git
 
-## Stack (target)
-
-Python 3.11 + pandas + NetworkX → FastAPI + Pydantic → React + Vite + TypeScript + Tailwind + Zustand + Framer Motion + D3.
-
-## Git (short)
-
-- Branch `p<N>-<topic>` → small PRs into `main`
-- Only edit files your role owns (see your prompt §5)
-- Pull `main` before each task
+Branch `p<N>-<topic>` → small PRs into `main`. Pull `main` before each task.
 
 Good luck — protect the Boyd Orr.
