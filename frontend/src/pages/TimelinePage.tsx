@@ -2,9 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import TimeSlider from '../components/viz/TimeSlider'
 import StoryChapter from '../components/viz/StoryChapter'
-import ComicPageShell from '../components/viz/ComicPageShell'
-import { playComicSfx } from '../components/viz/comicSfx'
-import { fireComicBurst } from '../components/viz/ComicBurst'
+import VizPageShell from '../components/viz/VizPageShell'
 import { hhmm, observeResize } from '../components/viz/util'
 import { useCaseStore } from '../store/useCaseStore'
 import type { Building, Case, Meeting, Student, Visit } from '../types/case'
@@ -322,7 +320,7 @@ export default function TimelinePage() {
           })
           .attr('r', 7)
           .attr('fill', 'none')
-          .attr('stroke', '#ffd166')
+          .attr('stroke', '#e3af35')
           .attr('stroke-width', 2)
           .attr('pointer-events', 'none')
       }
@@ -439,7 +437,7 @@ export default function TimelinePage() {
   }
 
   return (
-    <ComicPageShell enterSfx="thwip">
+    <VizPageShell>
       <StoryChapter
         chapter="timeline"
         subtitle={`${hhmm(c.meta.time_min)} → ${hhmm(c.meta.time_max)} · storyline`}
@@ -456,24 +454,13 @@ export default function TimelinePage() {
                 key={id}
                 type="button"
                 className={`btn${filter === id ? ' accent' : ''}`}
-                onClick={() => {
-                  playComicSfx('zap')
-                  fireComicBurst(id === 'flagged' ? 'CLUE' : 'ZAP')
-                  setFilter(id)
-                }}
+                onClick={() => setFilter(id)}
               >
                 {label}
               </button>
             ))}
             {brushDomain && (
-              <button
-                type="button"
-                className="btn"
-                onClick={() => {
-                  playComicSfx('whoosh')
-                  setBrushDomain(null)
-                }}
-              >
+              <button type="button" className="btn" onClick={() => setBrushDomain(null)}>
                 Reset zoom
               </button>
             )}
@@ -486,13 +473,11 @@ export default function TimelinePage() {
         ref={wrapRef}
         style={{ padding: 0, position: 'relative', minHeight: 420 }}
       >
-        <span className="comic-web-corner comic-web-corner--tl" />
-        <span className="comic-web-corner comic-web-corner--br" />
         <svg ref={svgRef} role="img" aria-label="Day storyline timeline" />
         <div ref={tooltipRef} className="tooltip" style={{ display: 'none' }} />
       </div>
 
       <TimeSlider />
-    </ComicPageShell>
+    </VizPageShell>
   )
 }

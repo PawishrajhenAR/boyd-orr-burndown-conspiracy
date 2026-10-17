@@ -6,9 +6,7 @@ import FlagHeatmap from '../components/viz/FlagHeatmap'
 import RuleBars from '../components/viz/RuleBars'
 import TimeSlider from '../components/viz/TimeSlider'
 import StoryChapter from '../components/viz/StoryChapter'
-import ComicPageShell from '../components/viz/ComicPageShell'
-import { playComicSfx } from '../components/viz/comicSfx'
-import { fireComicBurst } from '../components/viz/ComicBurst'
+import VizPageShell from '../components/viz/VizPageShell'
 import { hhmm } from '../components/viz/util'
 import '../components/viz/viz-story.css'
 
@@ -46,7 +44,7 @@ export default function VizLabPage() {
   const student = c.students.find((s) => s.id === studentId)
 
   return (
-    <ComicPageShell enterSfx="thwip">
+    <VizPageShell>
       <StoryChapter
         chapter="lab"
         subtitle="Clock24 · DayTimeline · HQ charts — acceptance harness"
@@ -56,16 +54,12 @@ export default function VizLabPage() {
               Student{' '}
               <select
                 value={studentId}
-                onChange={(e) => {
-                  playComicSfx('zap')
-                  fireComicBurst('ZAP')
-                  setStudentId(e.target.value)
-                }}
+                onChange={(e) => setStudentId(e.target.value)}
                 style={{
                   background: 'var(--panel-inner)',
                   color: 'var(--muted)',
                   border: '1px solid var(--panel-border)',
-                  borderRadius: 8,
+                  borderRadius: 10,
                   padding: '6px 10px',
                 }}
               >
@@ -89,7 +83,7 @@ export default function VizLabPage() {
         style={{
           display: 'grid',
           gridTemplateColumns: 'minmax(280px, 340px) 1fr',
-          gap: 12,
+          gap: 14,
           flex: 1,
           minHeight: 0,
         }}
@@ -116,7 +110,7 @@ export default function VizLabPage() {
         style={{
           display: 'grid',
           gridTemplateColumns: '1.2fr 0.8fr',
-          gap: 12,
+          gap: 14,
           minHeight: 240,
         }}
       >
@@ -135,6 +129,6 @@ export default function VizLabPage() {
       </div>
 
       <TimeSlider />
-    </ComicPageShell>
+    </VizPageShell>
   )
 }

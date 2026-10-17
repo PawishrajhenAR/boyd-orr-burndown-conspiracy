@@ -10,10 +10,8 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Feature, FeatureCollection, Polygon } from 'geojson'
 import TimeSlider from '../components/viz/TimeSlider'
 import StoryChapter from '../components/viz/StoryChapter'
-import ComicPageShell from '../components/viz/ComicPageShell'
+import VizPageShell from '../components/viz/VizPageShell'
 import CampusMapFallback from '../components/viz/CampusMapFallback'
-import { playComicSfx } from '../components/viz/comicSfx'
-import { fireComicBurst } from '../components/viz/ComicBurst'
 import { hhmm, verdictColor } from '../components/viz/util'
 import '../components/viz/viz-story.css'
 import {
@@ -57,9 +55,9 @@ function buildingPolygon(
 function studentDotColor(studentId: string, judgeMode: boolean): string {
   const c = useCaseStore.getState().case
   const sus = suspectFor(c, studentId)
-  if (!sus) return '#c8b89a'
+  if (!sus) return '#a1a1aa'
   if (sus.verdict === 'mastermind') {
-    return judgeMode ? verdictColor('mastermind') : '#c8b89a'
+    return judgeMode ? verdictColor('mastermind') : '#a1a1aa'
   }
   if (sus.verdict === 'conspirator') return verdictColor('conspirator')
   return verdictColor(sus.verdict)
@@ -95,7 +93,7 @@ function buildingFeatures(
       const height = 14 + (visits / maxV) * 48 + (b.id === selectedId ? 12 : 0)
       let color = '#3d4f6f'
       if (flaggedIds.has(b.id)) color = '#c0392b'
-      else if (b.id === selectedId) color = '#ffb347'
+      else if (b.id === selectedId) color = '#e3af35'
       else if (b.min_age && b.min_age >= 18) color = '#6b4c9a'
       return {
         type: 'Feature' as const,
@@ -219,12 +217,6 @@ export default function MapPage() {
   const selectBuildingRaw = useCaseStore((s) => s.selectBuilding)
   const selectBuilding = useCallback(
     (id: string | null) => {
-      if (id) {
-        playComicSfx('pow')
-        fireComicBurst('POW', { x: 35, y: 40 })
-      } else {
-        playComicSfx('zap')
-      }
       selectBuildingRaw(id)
     },
     [selectBuildingRaw],
@@ -414,7 +406,7 @@ export default function MapPage() {
           type: 'line',
           source: 'case-path',
           paint: {
-            'line-color': '#ffb347',
+            'line-color': '#e3af35',
             'line-width': 8,
             'line-opacity': 0.25,
             'line-blur': 4,
@@ -425,7 +417,7 @@ export default function MapPage() {
           type: 'line',
           source: 'case-path',
           paint: {
-            'line-color': '#ffb347',
+            'line-color': '#e3af35',
             'line-width': 3,
             'line-opacity': 0.95,
           },
@@ -549,14 +541,14 @@ export default function MapPage() {
   }
 
   return (
-    <ComicPageShell className="map-3d-page" enterSfx="whoosh">
+    <VizPageShell className="map-3d-page">
       <style>{`
         .map-3d-page .map-stage {
           flex: 1; min-height: 420px; height: 100%; position: relative;
           border-radius: 16px; overflow: hidden;
-          border: 2px solid var(--panel-border);
-          background: #1a1510;
-          box-shadow: inset 0 0 60px rgba(0,0,0,0.45);
+          border: 1px solid var(--panel-border);
+          background: #09090b;
+          box-shadow: inset 0 0 60px rgba(0,0,0,0.45), 0 18px 50px rgba(0,0,0,0.4);
         }
         .map-3d-page .map-host {
           position: absolute; inset: 0; z-index: 0;
@@ -566,28 +558,28 @@ export default function MapPage() {
           outline: none;
         }
         .map-3d-page .maplibregl-ctrl-attrib {
-          background: rgba(12,16,28,0.75) !important;
-          color: #8b95b0 !important;
+          background: rgba(16,16,19,0.85) !important;
+          color: #a1a1aa !important;
           font-size: 10px;
         }
         .map-3d-page .maplibregl-ctrl-group {
-          background: #1a2233 !important;
-          border: 1px solid #2a3355 !important;
+          background: #17171b !important;
+          border: 1px solid rgba(255,255,255,0.08) !important;
         }
         .map-3d-page .maplibregl-ctrl-group button {
-          background-color: #1a2233 !important;
+          background-color: #17171b !important;
         }
         .map-3d-badge {
           position: absolute; top: 12px; right: 12px; z-index: 2;
-          background: rgba(14,18,28,0.88); border: 1px solid #ffb34755;
-          color: #ffb347; font-family: var(--font-display); font-size: 12px;
+          background: rgba(16,16,19,0.9); border: 1px solid rgba(227,175,53,0.35);
+          color: #e3af35; font-family: var(--font-display); font-size: 12px;
           padding: 6px 10px; border-radius: 10px; pointer-events: none;
           letter-spacing: 0.04em;
         }
         .map-3d-legend {
           position: absolute; left: 12px; bottom: 28px; z-index: 2;
-          background: rgba(14,18,28,0.9); border: 1px solid #2a3355;
-          border-radius: 10px; padding: 8px 12px; font-size: 11px; color: #d9c3a5;
+          background: rgba(16,16,19,0.92); border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 10px; padding: 8px 12px; font-size: 11px; color: #e4e4e7;
           display: flex; flex-direction: column; gap: 4px; pointer-events: none;
         }
         .map-3d-legend span { display: flex; align-items: center; gap: 8px; }
@@ -603,9 +595,6 @@ export default function MapPage() {
 
       <div className="row">
         <div className="map-stage story-stage">
-          <span className="comic-web-corner comic-web-corner--tl" />
-          <span className="comic-web-corner comic-web-corner--tr" />
-          <span className="comic-web-corner comic-web-corner--br" />
           {!mapError ? <div className="map-host" ref={wrapRef} /> : null}
           {mapError && c ? (
             <CampusMapFallback
@@ -633,10 +622,10 @@ export default function MapPage() {
               <i style={{ background: '#c0392b' }} /> flagged now
             </span>
             <span>
-              <i style={{ background: '#d62828', borderRadius: '50%' }} /> conspirator
+              <i style={{ background: '#ef4444', borderRadius: '50%' }} /> conspirator
             </span>
             <span>
-              <i style={{ background: '#ffd166', borderRadius: '50%' }} /> mastermind
+              <i style={{ background: '#e3af35', borderRadius: '50%' }} /> mastermind
             </span>
           </div>
         </div>
@@ -773,6 +762,6 @@ export default function MapPage() {
       </div>
 
       <TimeSlider />
-    </ComicPageShell>
+    </VizPageShell>
   )
 }

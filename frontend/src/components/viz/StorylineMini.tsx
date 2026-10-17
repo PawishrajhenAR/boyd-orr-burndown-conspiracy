@@ -127,7 +127,7 @@ export default function StorylineMini() {
     <div ref={wrapRef} style={{ width: '100%' }}>
       <div
         style={{
-          fontFamily: 'Fredoka, sans-serif',
+          fontFamily: 'Outfit, sans-serif',
           fontWeight: 600,
           fontSize: 12,
           color: TOKENS.accent,

@@ -88,7 +88,7 @@ export default function CampusMapFallback({
     if (pathCoords.length >= 2) {
       L.polyline(
         pathCoords.map(([lon, lat]) => [lat, lon] as [number, number]),
-        { color: '#ffb347', weight: 3, opacity: 0.9 },
+        { color: '#e3af35', weight: 3, opacity: 0.9 },
       ).addTo(layer)
     }
 
@@ -99,7 +99,7 @@ export default function CampusMapFallback({
       const selected = b.id === selectedBuildingId
       let face = '#3d4f6f'
       if (flagged) face = '#c0392b'
-      else if (selected) face = '#ffb347'
+      else if (selected) face = '#e3af35'
       else if (b.min_age && b.min_age >= 18) face = '#6b4c9a'
 
       const html = `
@@ -177,7 +177,7 @@ export default function CampusMapFallback({
           cursor: pointer;
           filter: drop-shadow(0 8px 10px rgba(0,0,0,0.55));
         }
-        .iso-bldg.sel { filter: drop-shadow(0 0 12px #ffb347); }
+        .iso-bldg.sel { filter: drop-shadow(0 0 12px #e3af35); }
         .iso-front, .iso-side, .iso-top {
           position: absolute; left: 0; bottom: 0;
         }
@@ -200,17 +200,17 @@ export default function CampusMapFallback({
         }
         .iso-label {
           position: absolute; left: 50%; bottom: -18px; transform: translateX(-50%) rotateZ(25deg) rotateX(-55deg);
-          white-space: nowrap; font-size: 10px; color: #f0e6d4;
+          white-space: nowrap; font-size: 10px; color: #e4e4e7;
           text-shadow: 0 1px 3px #000; pointer-events: none;
-          font-family: Inter, system-ui, sans-serif;
+          font-family: Outfit, system-ui, sans-serif;
         }
         .iso-dot-wrap { background: transparent !important; border: none !important; }
         .iso-dot {
           width: 12px; height: 12px; border-radius: 50%;
         }
-        .leaflet-container { background: #1a1510; font: 12px Inter, system-ui, sans-serif; }
+        .leaflet-container { background: #09090b; font: 12px Outfit, system-ui, sans-serif; }
         .leaflet-tooltip {
-          background: #12182a; color: #e8eefc; border: 1px solid #ffb34755;
+          background: #101013; color: #e4e4e7; border: 1px solid #e3af3555;
           border-radius: 8px; box-shadow: none;
         }
       `}</style>
@@ -221,7 +221,7 @@ export default function CampusMapFallback({
           top: 12,
           left: 12,
           zIndex: 500,
-          background: 'rgba(14,18,28,0.88)',
+          background: 'rgba(16,16,19,0.9)',
           border: '1px solid #2ec4b655',
           color: '#2ec4b6',
           fontSize: 11,

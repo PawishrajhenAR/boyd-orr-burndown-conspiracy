@@ -159,7 +159,7 @@ export default function DayTimeline({ studentId }: Props) {
           .attr('width', Math.max(2, x1 - x0))
           .attr('height', ROW_H - 12)
           .attr('rx', 3)
-          .attr('fill', flagged ? '#c0392b' : '#ffb347')
+          .attr('fill', flagged ? '#ef4444' : '#e3af35')
           .attr('opacity', flagged ? 0.85 : 0.75)
           .attr('stroke', flagged ? TOKENS.pin : 'none')
           .attr('stroke-width', flagged ? 2 : 0)
@@ -201,7 +201,7 @@ export default function DayTimeline({ studentId }: Props) {
     <div ref={wrapRef} style={{ width: '100%' }}>
       <div
         style={{
-          fontFamily: 'Fredoka, sans-serif',
+          fontFamily: 'Outfit, sans-serif',
           fontWeight: 600,
           fontSize: 13,
           color: TOKENS.accent,

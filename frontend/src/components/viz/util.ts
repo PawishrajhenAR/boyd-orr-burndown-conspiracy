@@ -24,15 +24,15 @@ export function timeScale(
 export function verdictColor(verdict: string | Verdict | null | undefined): string {
   switch (verdict) {
     case 'conspirator':
-      return '#d62828'
+      return '#ef4444'
     case 'mastermind':
-      return '#ffd166'
+      return '#e3af35'
     case 'suspicious':
-      return '#d35400'
+      return '#c2820a'
     case 'clear':
-      return '#a8927a'
+      return '#a1a1aa'
     default:
-      return '#a8927a'
+      return '#a1a1aa'
   }
 }
 
@@ -102,24 +102,25 @@ export function isOpenAt(
 }
 
 export const TOKENS = {
-  accent: '#ffb347',
-  pin: '#d62828',
-  panel: '#2a1f17',
-  panelBorder: '#4a3524',
-  networkDark: '#0b1020',
-  muted: '#a8927a',
-  mutedSoft: '#d9c3a5',
-  warn: '#d35400',
-  mastermind: '#ffd166',
+  accent: '#e3af35',
+  pin: '#ef4444',
+  panel: '#101013',
+  panelBorder: 'rgba(255,255,255,0.08)',
+  networkDark: '#09090b',
+  muted: '#a1a1aa',
+  mutedSoft: '#e4e4e7',
+  warn: '#c2820a',
+  mastermind: '#38e062',
+  primary: '#38e062',
 } as const
 
-/** Dark link-analysis palette for Network page / NetworkMini. */
+/** Amber Dark link-analysis palette for Network page / NetworkMini. */
 export const NETWORK = {
-  bg: '#0b1020',
-  teal: '#2ec4b6',
-  violet: '#9b5de5',
-  conspirator: '#ff4d5e',
-  mastermind: '#ffd166',
-  edge: '#2ec4b6',
-  edgeGold: '#ffd166',
+  bg: '#09090b',
+  teal: '#38e062',
+  violet: '#e3af35',
+  conspirator: '#ef4444',
+  mastermind: '#e3af35',
+  edge: '#38e062',
+  edgeGold: '#e3af35',
 } as const

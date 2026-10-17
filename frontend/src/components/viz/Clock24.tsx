@@ -275,7 +275,7 @@ export default function Clock24({ studentId }: Props) {
         .attr('fill', TOKENS.accent)
         .attr('font-size', 20)
         .attr('font-weight', 700)
-        .attr('font-family', 'Fredoka, sans-serif')
+        .attr('font-family', 'Outfit, sans-serif')
         .text(String(ruleBreaks))
       root
         .append('text')
@@ -295,7 +295,7 @@ export default function Clock24({ studentId }: Props) {
     <div ref={wrapRef} style={{ width: '100%', maxWidth: 320 }}>
       <div
         style={{
-          fontFamily: 'Fredoka, sans-serif',
+          fontFamily: 'Outfit, sans-serif',
           fontWeight: 600,
           fontSize: 13,
           color: TOKENS.accent,

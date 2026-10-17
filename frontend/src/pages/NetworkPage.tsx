@@ -6,9 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import * as d3 from 'd3'
 import TimeSlider from '../components/viz/TimeSlider'
 import StoryChapter from '../components/viz/StoryChapter'
-import ComicPageShell from '../components/viz/ComicPageShell'
-import { playComicSfx } from '../components/viz/comicSfx'
-import { fireComicBurst } from '../components/viz/ComicBurst'
+import VizPageShell from '../components/viz/VizPageShell'
 import { hhmm, NETWORK, observeResize, verdictColor } from '../components/viz/util'
 import '../components/viz/viz-story.css'
 import { flagsFor, meetingsUntil, suspectFor, useCaseStore } from '../store/useCaseStore'
@@ -389,9 +387,6 @@ export default function NetworkPage() {
       setHint('No mastermind verdict in case data yet.')
       return
     }
-    playComicSfx('reveal')
-    fireComicBurst('REVEAL', { x: 48, y: 36 })
-    window.setTimeout(() => fireComicBurst('WHAM', { x: 58, y: 48 }), 280)
     setRevealed(true)
     // Show every meeting so gold edges to all conspirators are visible.
     setReplayTime(c.meta.time_max)
@@ -675,19 +670,18 @@ export default function NetworkPage() {
   const mmTotal = conspirators.length || 6
 
   return (
-    <ComicPageShell
+    <VizPageShell
       className="network-page"
       style={{ background: NETWORK.bg, margin: 0, borderRadius: 0 }}
-      enterSfx="slam"
     >
       <style>{`
-        .network-page { color: #c8d0e0; gap: 8px; }
-        .network-page .page-title { color: #ffd166; }
-        .network-page .caption { color: #8b95b0; }
+        .network-page { color: #e4e4e7; gap: 8px; }
+        .network-page .page-title { color: #e3af35; }
+        .network-page .caption { color: #a1a1aa; }
         .network-stage {
           flex: 1; min-height: 320px; position: relative;
           background: ${NETWORK.bg};
-          border: 1px solid #1e2744; border-radius: 16px; overflow: hidden;
+          border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden;
         }
         .network-stage svg { width: 100%; height: 100%; display: block; }
         .net-controls-tl {
@@ -699,44 +693,44 @@ export default function NetworkPage() {
           display: flex; gap: 6px; align-items: center;
         }
         .net-controls-tr input {
-          background: #12182a; border: 1px solid #2a3355; color: #c8d0e0;
-          border-radius: 8px; padding: 6px 10px; min-width: 160px; font-size: 13px;
+          background: #17171b; border: 1px solid rgba(255,255,255,0.08); color: #e4e4e7;
+          border-radius: 10px; padding: 6px 10px; min-width: 160px; font-size: 13px;
         }
         .net-toolbar {
           display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
           padding: 4px 0;
         }
         .net-toolbar label {
-          display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #8b95b0;
+          display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #a1a1aa;
         }
         .net-toolbar input[type="range"] { accent-color: ${NETWORK.teal}; width: 120px; }
-        .network-layout { display: flex; gap: 12px; flex: 1; min-height: 0; }
+        .network-layout { display: flex; gap: 14px; flex: 1; min-height: 0; }
         .network-details {
-          width: 280px; flex-shrink: 0; background: #12182a;
-          border: 1px solid #2a3355; border-radius: 16px; padding: 12px; overflow: auto;
+          width: 280px; flex-shrink: 0; background: #101013;
+          border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 12px; overflow: auto;
         }
-        .net-section { border-top: 1px solid #2a3355; }
+        .net-section { border-top: 1px solid rgba(255,255,255,0.08); }
         .net-section-head {
           width: 100%; display: flex; justify-content: space-between;
-          background: transparent; border: none; color: #c8d0e0;
+          background: transparent; border: none; color: #e4e4e7;
           padding: 8px 0; cursor: pointer; font-family: var(--font-display); font-size: 14px;
         }
         .net-section-body { padding-bottom: 8px; font-size: 12px; }
         .net-dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; margin: 0; }
-        .net-dl dt { color: #8b95b0; }
+        .net-dl dt { color: #a1a1aa; }
         .net-dl dd { margin: 0; }
         .net-list { margin: 0; padding-left: 16px; }
         .net-list li { margin-bottom: 6px; }
         .net-edge-tip {
           position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
-          background: #1a2238; border: 1px solid ${NETWORK.teal}; color: #e8eefc;
+          background: #17171b; border: 1px solid ${NETWORK.teal}; color: #e4e4e7;
           padding: 4px 10px; border-radius: 8px; font-size: 12px; pointer-events: none; z-index: 3;
         }
         .net-reveal-caption {
           position: absolute; bottom: 12px; left: 12px; z-index: 2;
           color: ${NETWORK.mastermind}; font-family: var(--font-display); font-size: 13px;
         }
-        .btn.net { background: #12182a; border-color: #2a3355; color: #c8d0e0; }
+        .btn.net { background: #17171b; border-color: rgba(255,255,255,0.08); color: #e4e4e7; }
         .btn.net.gold { border-color: ${NETWORK.mastermind}; color: ${NETWORK.mastermind}; }
       `}</style>
 
@@ -779,8 +773,6 @@ export default function NetworkPage() {
 
       <div className="network-layout">
         <div className="network-stage story-stage" ref={wrapRef}>
-          <span className="comic-web-corner comic-web-corner--tl" />
-          <span className="comic-web-corner comic-web-corner--tr" />
           <div className="net-controls-tl">
             <button
               type="button"
@@ -837,6 +829,6 @@ export default function NetworkPage() {
       </div>
 
       <TimeSlider />
-    </ComicPageShell>
+    </VizPageShell>
   )
 }
