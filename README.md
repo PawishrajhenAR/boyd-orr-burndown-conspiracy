@@ -43,6 +43,10 @@ Philosophy, Veterinary Medicine, Biomechanical Engineering, Medicine, Computer S
 
 Bad Movie Society, Glasgow Students' Nightline, Accapella Society, Astrology Society, Astronomy Society, Big Band Society, Back to Yoga Society, Brunei Society, Clash Of Clans Society, Esports Society, Cymdeithas Cymry Glasgow, Dr Who Society, FemEng Society, Extinction Rebellion, Grim Reaper Quidditch Club, Italian Society, Juggling Society, Glasgow Latin America Society, Volleyball Society, LGBTQ+ Students Association, Marxist Society, Minecraft Society, Motorcycling Society, pHd Society, Philosophy Society, Pole Dancing Club, Sexpression, Shrek Society, Soup Society, Rising Stars, Glasgow Uni Tech Society, Skate Society
 
+## Team build
+
+Work from [`boyd_orr_team_prompts/`](boyd_orr_team_prompts/) — start with [`00_START_HERE.md`](boyd_orr_team_prompts/00_START_HERE.md). Role prompts and the UI reference (`design_reference.png`) live there.
+
 ## Getting started
 
 ```bash
