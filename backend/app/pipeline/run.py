@@ -6,8 +6,11 @@ from pathlib import Path
 
 from app.models import Building, DataQualityIssue, Statement, Student, Visit
 
+from .buildings import parse_buildings
+from .clean import assign_lectures, clean_students, clean_visits
 from .load import load_raw
 from .quality import summarise
+from .statements import resolve_statements
 
 
 @dataclass
@@ -21,9 +24,25 @@ class CleanData:
 
 
 def run_pipeline(raw_dir: Path) -> CleanData:
-    """STUB until H6: only loading works so far (steps 2-5 raise NotImplementedError)."""
-    load_raw(raw_dir)
-    raise NotImplementedError("pipeline steps 2-5 not built yet")
+    """Load → buildings → clean students/visits → lectures → statements → quality."""
+    raw = load_raw(raw_dir)
+    subjects = {str(s).strip() for s in raw.people["Subject"].dropna().unique()}
+
+    buildings, aliases, b_issues = parse_buildings(raw.locations, subjects)
+    students, s_issues = clean_students(raw.people)
+    visits, v_issues = clean_visits(raw.logs, buildings, aliases, students)
+    lec_issues = assign_lectures(students, buildings, visits)
+    statements, st_issues = resolve_statements(raw.statements, students)
+
+    data_quality = [*b_issues, *s_issues, *v_issues, *lec_issues, *st_issues]
+    return CleanData(
+        buildings=buildings,
+        students=students,
+        visits=visits,
+        statements=statements,
+        data_quality=data_quality,
+        aliases=aliases,
+    )
 
 
 def main() -> None:
