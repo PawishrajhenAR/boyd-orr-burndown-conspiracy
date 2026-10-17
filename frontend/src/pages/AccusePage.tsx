@@ -1,4 +1,2 @@
-/** P4 stub */
-export default function AccusePage() {
-  return <div className="page"><h2 className="page-title">Accuse (P4)</h2></div>
-}
+import { useState } from 'react'; import { useNavigate } from 'react-router-dom'; import { Button, Polaroid } from '../components/game/GameKit'; import { boardStudents, useCaseStore } from '../store/useCaseStore'
+export default function AccusePage(){const c=useCaseStore(s=>s.case), set=useCaseStore(s=>s.setAccusation),go=useNavigate();const [picked,setPicked]=useState<string[]>([]);if(!c)return null;const cards=boardStudents(c);const toggle=(id:string)=>setPicked(x=>x.includes(id)?x.filter(y=>y!==id):x.length<7?[...x,id]:x);const submit=()=>{const mastermind=picked.find(id=>c.suspects.find(s=>s.student_id===id)?.verdict==='mastermind')??null;set({conspirators:picked.filter(id=>id!==mastermind),mastermind});go('/closed')};return <div className="page"><h2 className="page-title">Make your accusation</h2><p>Choose six conspirators and one mastermind. Selected: {picked.length}/7</p><div className="accuse-grid">{cards.map(s=><Polaroid key={s.id} student={s} status={picked.includes(s.id)?'Selected':'Tap to select'} onClick={()=>toggle(s.id)}/>)}</div><Button variant="danger" disabled={picked.length!==7} onClick={submit}>Submit accusation</Button></div>}

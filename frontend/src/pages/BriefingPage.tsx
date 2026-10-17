@@ -1,4 +1,2 @@
-/** P4 stub */
-export default function BriefingPage() {
-  return <div className="page"><h2 className="page-title">Briefing (P4)</h2></div>
-}
+import { Link } from 'react-router-dom'; import { Character, Panel, SpeechBubble } from '../components/game/GameKit'; import { story } from '../content/story'; import { useCaseStore } from '../store/useCaseStore'
+export default function BriefingPage() { const c=useCaseStore(s=>s.case); return <div className="page briefing"><div className="briefing-character"><Character variant="morag" /><b>PC Morag</b></div><div>{story.briefing.map((line,i)=><SpeechBubble key={i} speaker={i===0?'PC MORAG':'CASE NOTES'}>{line}</SpeechBubble>)}</div><Panel><h2>Case notes</h2><ol><li>Students attend their mandatory lecture once.</li><li>Students do not have out-of-hours building access.</li><li>The ring leader looks clean, but met the conspirators.</li></ol><p>{c ? `${c.meta.counts.students} students · ${c.meta.counts.visits} access visits · ${c.meta.counts.buildings} buildings` : 'Loading case evidence…'}</p><Link className="btn accent" to="/evidence">Review the evidence →</Link></Panel></div> }

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Case, Flag, Meeting, Student, Building, Suspect, Visit } from '../types/case'
+import type { Case, Flag, Meeting, Student, Building, Suspect, Visit, RuleId } from '../types/case'
 import { loadCase as fetchCase } from '../api/client'
 
 type ExamCheck = 'lecture' | 'hours' | 'alibi' | 'profile'
@@ -24,6 +24,9 @@ interface CaseState {
   accusation: { conspirators: string[]; mastermind: string | null }
   hint: string
   setHint: (text: string) => void
+  revealForCheck: (id: string, check: ExamCheck) => void
+  setAccusation: (accusation: { conspirators: string[]; mastermind: string | null }) => void
+  visibleFlagsFor: (id: string) => Flag[]
 }
 
 export const useCaseStore = create<CaseState>((set, get) => ({
@@ -33,8 +36,8 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     set({
       case: c,
       replayTime: c.meta.time_min,
-      judgeMode: true,
-      revealedFlagIds: new Set(c.flags.map((f) => f.id)),
+      judgeMode: false,
+      revealedFlagIds: new Set(),
     })
   },
   selectedStudentId: null,
@@ -49,7 +52,7 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     set({ isPlaying: next })
   },
   judgeMode: true,
-  setJudgeMode: (b) => set({ judgeMode: b }),
+  setJudgeMode: (b) => set((state) => ({ judgeMode: b, revealedFlagIds: b ? new Set(state.case?.flags.map((f) => f.id) ?? []) : state.revealedFlagIds })),
   examined: {},
   markExamined: (id, check) => {
     const prev = get().examined[id] ?? {
@@ -65,6 +68,23 @@ export const useCaseStore = create<CaseState>((set, get) => ({
   accusation: { conspirators: [], mastermind: null },
   hint: '',
   setHint: (text) => set({ hint: text }),
+  revealForCheck: (id, check) => {
+    get().markExamined(id, check)
+    const rules: Record<ExamCheck, RuleId[]> = {
+      lecture: ['missing_lecture', 'multiple_lectures', 'left_lecture_early', 'subject_without_lecture'],
+      hours: ['out_of_hours', 'age_restricted_venue', 'impossible_overlap'],
+      alibi: ['id_mismatch', 'id_format', 'statement_contradiction', 'statement_omission', 'false_society_claim'],
+      profile: [],
+    }
+    const next = new Set(get().revealedFlagIds)
+    get().case?.flags.filter((f) => f.student_id === id && rules[check].includes(f.rule)).forEach((f) => next.add(f.id))
+    set({ revealedFlagIds: next })
+  },
+  setAccusation: (accusation) => set({ accusation }),
+  visibleFlagsFor: (id) => {
+    const state = get()
+    return state.case?.flags.filter((f) => f.student_id === id && (state.judgeMode || state.revealedFlagIds.has(f.id))) ?? []
+  },
 }))
 
 export function studentById(c: Case | null, id: string | null): Student | undefined {
