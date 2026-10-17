@@ -1,18 +1,6 @@
 import { create } from 'zustand'
 import type { Case, Flag, Meeting, Student, Building, Suspect, Visit, RuleId } from '../types/case'
-
-/**
- * Hackathon demo switch: P4 runs solely from the complete local Case fixture
- * while P3's FastAPI implementation is in progress. The fixture preserves the
- * same snake_case Case contract and is derived from the shared challenge data.
- */
-const DEMO_CASE_PATH = '/case.sample.json'
-
-async function loadDemoCase(): Promise<Case> {
-  const response = await fetch(DEMO_CASE_PATH)
-  if (!response.ok) throw new Error(`Could not load ${DEMO_CASE_PATH}`)
-  return response.json() as Promise<Case>
-}
+import { loadCase as fetchCase } from '../api/client'
 
 type ExamCheck = 'lecture' | 'hours' | 'alibi' | 'profile'
 
@@ -44,7 +32,7 @@ interface CaseState {
 export const useCaseStore = create<CaseState>((set, get) => ({
   case: null,
   loadCase: async () => {
-    const c = await loadDemoCase()
+    const c = await fetchCase()
     set({
       case: c,
       replayTime: c.meta.time_min,
