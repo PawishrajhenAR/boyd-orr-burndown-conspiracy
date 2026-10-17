@@ -1,4 +1,2 @@
-/** P4 stub */
-export default function CaseClosedPage() {
-  return <div className="page"><h2 className="page-title">Case Closed (P4)</h2></div>
-}
+import { Link } from 'react-router-dom'; import { NetworkMini, StorylineMini } from '../components/viz'; import { Panel, Stamp } from '../components/game/GameKit'; import { useCaseStore } from '../store/useCaseStore'
+export default function CaseClosedPage(){const c=useCaseStore(s=>s.case);if(!c)return null;const mastermind=c.suspects.find(s=>s.verdict==='mastermind');const name=c.students.find(s=>s.id===mastermind?.student_id)?.name;return <div className="page closed"><p className="eyebrow">THE CAMPUS CHRONICLE · SPECIAL EDITION</p><h1>FIREWORK PLOT FOILED</h1><p>Security connected the final clean thread through a day of messy evidence.</p><Panel><Stamp verdict="mastermind"/><h2>{name ?? 'Case conclusion pending'}</h2><p>All clues and meetings are preserved in Case File #1105.</p></Panel><div className="dashboard"><Panel><StorylineMini /></Panel><Panel><NetworkMini /></Panel></div><Link className="btn accent" to="/board">Return to the case board</Link></div>}

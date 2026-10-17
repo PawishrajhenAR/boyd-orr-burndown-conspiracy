@@ -1,52 +1,52 @@
-import { useEffect } from 'react'
-import { NavLink, Route, Routes } from 'react-router-dom'
+import { useEffect, type ReactNode } from 'react'
+import { Route, Routes } from 'react-router-dom'
 import { useCaseStore } from './store/useCaseStore'
+import { NavRail } from './components/game/GameKit'
+import { playGameSound } from './components/game/audio'
+import TitlePage from './pages/TitlePage'
+import BriefingPage from './pages/BriefingPage'
+import EvidencePage from './pages/EvidencePage'
+import BoardPage from './pages/BoardPage'
+import InterrogationPage from './pages/InterrogationPage'
+import HQPage from './pages/HQPage'
+import AccusePage from './pages/AccusePage'
+import CaseClosedPage from './pages/CaseClosedPage'
 import MapPage from './pages/MapPage'
 import TimelinePage from './pages/TimelinePage'
 import NetworkPage from './pages/NetworkPage'
 import VizLabPage from './pages/VizLabPage'
-import HomePage from './pages/HomePage'
-import { hhmm } from './components/viz/util'
+
+function GameRoute({ children }: { children: ReactNode }) {
+  return <><NavRail />{children}</>
+}
 
 export default function App() {
-  const loadCase = useCaseStore((s) => s.loadCase)
-  const c = useCaseStore((s) => s.case)
-  const replayTime = useCaseStore((s) => s.replayTime)
-
+  const loadCase = useCaseStore((state) => state.loadCase)
+  useEffect(() => { void loadCase() }, [loadCase])
   useEffect(() => {
-    void loadCase()
-  }, [loadCase])
-
-  // Play/scrub is owned by <TimeSlider /> — do not duplicate the interval here.
-
-  return (
-    <div className="app-shell">
-      <header className="topbar">
-        <h1>CASE FILE #1105 — P5 Viz Lab</h1>
-        <nav className="nav">
-          <NavLink to="/" end>
-            Home
-          </NavLink>
-          <NavLink to="/map">Map</NavLink>
-          <NavLink to="/timeline">Timeline</NavLink>
-          <NavLink to="/network">Network</NavLink>
-          <NavLink to="/lab">Lab</NavLink>
-        </nav>
-        <span style={{ fontSize: 12, color: 'var(--muted-dark)', fontFamily: 'var(--font-mono)' }}>
-          {c
-            ? `${c.meta.counts.students} students · ${hhmm(replayTime)} · judge`
-            : 'Loading…'}
-        </span>
-      </header>
-      <main className="main">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/map" element={<MapPage />} />
-          <Route path="/timeline" element={<TimelinePage />} />
-          <Route path="/network" element={<NetworkPage />} />
-          <Route path="/lab" element={<VizLabPage />} />
-        </Routes>
-      </main>
-    </div>
-  )
+    const onPress = (event: PointerEvent) => {
+      const target = (event.target as HTMLElement).closest('button, a')
+      if (!target) return
+      target.classList.add('game-press')
+      window.setTimeout(() => target.classList.remove('game-press'), 150)
+      const text = target.textContent?.toLowerCase() ?? ''
+      playGameSound(target.classList.contains('polaroid') ? 'select' : text.includes('accuse') ? 'danger' : text.includes('clue') ? 'clue' : text.includes('submit') ? 'success' : 'tap')
+    }
+    document.addEventListener('pointerdown', onPress)
+    return () => document.removeEventListener('pointerdown', onPress)
+  }, [])
+  return <div className="app-shell"><Routes>
+    <Route path="/" element={<TitlePage />} />
+    <Route path="/briefing" element={<GameRoute><BriefingPage /></GameRoute>} />
+    <Route path="/evidence" element={<GameRoute><EvidencePage /></GameRoute>} />
+    <Route path="/board" element={<GameRoute><BoardPage /></GameRoute>} />
+    <Route path="/student/:id" element={<GameRoute><InterrogationPage /></GameRoute>} />
+    <Route path="/hq" element={<GameRoute><HQPage /></GameRoute>} />
+    <Route path="/map" element={<GameRoute><MapPage /></GameRoute>} />
+    <Route path="/timeline" element={<GameRoute><TimelinePage /></GameRoute>} />
+    <Route path="/network" element={<GameRoute><NetworkPage /></GameRoute>} />
+    <Route path="/lab" element={<GameRoute><VizLabPage /></GameRoute>} />
+    <Route path="/accuse" element={<GameRoute><AccusePage /></GameRoute>} />
+    <Route path="/closed" element={<GameRoute><CaseClosedPage /></GameRoute>} />
+  </Routes></div>
 }

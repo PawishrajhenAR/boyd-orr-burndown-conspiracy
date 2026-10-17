@@ -1,4 +1,2 @@
-/** P4 stub — hosts FlagHeatmap + RuleBars */
-export default function HQPage() {
-  return <div className="page"><h2 className="page-title">HQ (P4)</h2></div>
-}
+import { FlagHeatmap, RuleBars } from '../components/viz'; import { Panel } from '../components/game/GameKit'; import { useCaseStore } from '../store/useCaseStore'
+export default function HQPage(){const c=useCaseStore(s=>s.case); const examined=useCaseStore(s=>s.examined); if(!c)return null; const top=[...c.suspects].sort((a,b)=>b.score-a.score).slice(0,10); return <div className="page"><h2 className="page-title">Security HQ <small>Live threat dashboard</small></h2><div className="kpis"><b>{c.students.length}<small>students</small></b><b>{c.visits.length}<small>visits</small></b><b>{c.flags.length}<small>flags</small></b><b>{Object.keys(examined).length}<small>profiles checked</small></b></div><div className="dashboard"><Panel><FlagHeatmap /></Panel><Panel><RuleBars /></Panel><Panel><h3>Top suspects</h3>{top.map(x=>{const p=c.students.find(s=>s.id===x.student_id);return <p key={x.student_id}>{x.rank}. {p?.name} <strong>{x.score}</strong></p>})}</Panel></div></div>}
