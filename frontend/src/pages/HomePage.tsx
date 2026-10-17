@@ -25,6 +25,10 @@ export default function HomePage() {
           <h2>Network</h2>
           <p>Who met whom — link analysis + reveal mastermind (Scott → 6).</p>
         </Link>
+        <Link className="home-card" to="/lab">
+          <h2>Viz lab</h2>
+          <p>Clock24, DayTimeline, FlagHeatmap, RuleBars — acceptance harness for P4 hand-off.</p>
+        </Link>
       </div>
       {c && (
         <p className="caption" style={{ marginTop: 24 }}>

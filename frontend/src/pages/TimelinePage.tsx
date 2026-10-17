@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import TimeSlider from '../components/viz/TimeSlider'
-import { hhmm } from '../components/viz/util'
+import { hhmm, observeResize } from '../components/viz/util'
 import { useCaseStore } from '../store/useCaseStore'
 import type { Building, Case, Meeting, Student, Visit } from '../types/case'
 
@@ -128,6 +128,22 @@ export default function TimelinePage() {
         .attr('width', innerW)
         .attr('height', innerH)
         .attr('fill', '#141018')
+
+      // Light vertical hour guides (behind paths)
+      {
+        const hourStart = Math.ceil(domain[0] / 60) * 60
+        for (let t = hourStart; t <= domain[1]; t += 60) {
+          root
+            .append('line')
+            .attr('x1', x(t))
+            .attr('x2', x(t))
+            .attr('y1', 0)
+            .attr('y2', innerH)
+            .attr('stroke', '#2a2230')
+            .attr('stroke-width', 1)
+            .attr('pointer-events', 'none')
+        }
+      }
 
       // Closed-hours per row
       for (const b of buildings) {
@@ -328,15 +344,25 @@ export default function TimelinePage() {
         .attr('font-family', 'var(--font-mono)')
         .text(hhmm(replayTime))
 
-      // Time axis
-      const axis = d3
+      // Time axes (top + bottom) so the day is readable without reading the slider only
+      const axisBottom = d3
         .axisBottom(x)
-        .ticks(8)
+        .ticks(10)
+        .tickFormat((d) => hhmm(Number(d)))
+      const axisTop = d3
+        .axisTop(x)
+        .ticks(10)
         .tickFormat((d) => hhmm(Number(d)))
       root
         .append('g')
         .attr('transform', `translate(0,${innerH})`)
-        .call(axis)
+        .call(axisBottom)
+        .selectAll('text')
+        .attr('fill', '#a8927a')
+        .attr('font-size', 10)
+      root
+        .append('g')
+        .call(axisTop)
         .selectAll('text')
         .attr('fill', '#a8927a')
         .attr('font-size', 10)
@@ -380,10 +406,9 @@ export default function TimelinePage() {
     }
 
     draw()
-    const ro = new ResizeObserver(() => draw())
-    ro.observe(wrap)
+    const stopRo = observeResize(wrap, draw)
     return () => {
-      ro.disconnect()
+      stopRo()
       svg.selectAll('*').remove()
     }
   }, [

@@ -6,7 +6,7 @@ import {
   flagsFor,
   buildingById,
 } from '../../store/useCaseStore'
-import { hhmm, isOpenAt, TOKENS } from './util'
+import { hhmm, isOpenAt, observeResize, TOKENS } from './util'
 
 interface Props {
   studentId: string
@@ -288,9 +288,7 @@ export default function Clock24({ studentId }: Props) {
     }
 
     draw()
-    const ro = new ResizeObserver(draw)
-    ro.observe(wrap)
-    return () => ro.disconnect()
+    return observeResize(wrap, draw)
   }, [caseData, studentId, visits, buildingIds, ruleBreaks])
 
   return (

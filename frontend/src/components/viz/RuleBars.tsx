@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { select } from 'd3'
 import type { RuleId } from '../../types/case'
 import { useCaseStore } from '../../store/useCaseStore'
-import { useVisibleFlags, TOKENS } from './util'
+import { observeResize, useVisibleFlags, TOKENS } from './util'
 
 const RULE_LABELS: Record<RuleId, string> = {
   missing_lecture: 'Missing lecture',
@@ -123,9 +123,7 @@ export default function RuleBars() {
     }
 
     draw()
-    const ro = new ResizeObserver(draw)
-    ro.observe(wrap)
-    return () => ro.disconnect()
+    return observeResize(wrap, draw)
   }, [rows, maxCount, setHint, caseData])
 
   return (

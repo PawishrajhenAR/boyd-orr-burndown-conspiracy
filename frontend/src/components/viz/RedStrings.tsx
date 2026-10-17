@@ -13,7 +13,7 @@ import {
   suspectFor,
 } from '../../store/useCaseStore'
 import type { Meeting } from '../../types/case'
-import { hhmm, TOKENS } from './util'
+import { hhmm, observeResize, TOKENS } from './util'
 
 interface Props {
   containerRef: RefObject<HTMLElement | null>
@@ -63,8 +63,7 @@ export default function RedStrings({ containerRef }: Props) {
     if (!container) return
 
     const bump = () => setTick((n) => n + 1)
-    const ro = new ResizeObserver(bump)
-    ro.observe(container)
+    const stopRo = observeResize(container, bump)
     const mo = new MutationObserver(bump)
     mo.observe(container, {
       childList: true,
@@ -74,7 +73,7 @@ export default function RedStrings({ containerRef }: Props) {
     })
     window.addEventListener('resize', bump)
     return () => {
-      ro.disconnect()
+      stopRo()
       mo.disconnect()
       window.removeEventListener('resize', bump)
     }

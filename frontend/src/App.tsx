@@ -1,8 +1,52 @@
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { useCaseStore } from './store/useCaseStore'
 import { NavRail } from './components/game/GameKit'
-import TitlePage from './pages/TitlePage'; import BriefingPage from './pages/BriefingPage'; import EvidencePage from './pages/EvidencePage'; import BoardPage from './pages/BoardPage'; import InterrogationPage from './pages/InterrogationPage'; import HQPage from './pages/HQPage'; import AccusePage from './pages/AccusePage'; import CaseClosedPage from './pages/CaseClosedPage'
-import MapPage from './pages/MapPage'; import TimelinePage from './pages/TimelinePage'; import NetworkPage from './pages/NetworkPage'
 import { playGameSound } from './components/game/audio'
-export default function App(){const load=useCaseStore(s=>s.loadCase);useEffect(()=>{void load()},[load]);useEffect(()=>{const onPress=(event:PointerEvent)=>{const target=(event.target as HTMLElement).closest('button, a');if(!target)return;target.classList.add('game-press');window.setTimeout(()=>target.classList.remove('game-press'),150);const text=target.textContent?.toLowerCase()??'';playGameSound(target.classList.contains('polaroid')?'select':text.includes('accuse')?'danger':text.includes('clue')?'clue':text.includes('submit')?'success':'tap')};document.addEventListener('pointerdown',onPress);return()=>document.removeEventListener('pointerdown',onPress)},[]);return <div className="app-shell"><Routes><Route path="/" element={<TitlePage/>}/><Route path="/briefing" element={<><NavRail/><BriefingPage/></>}/><Route path="/evidence" element={<><NavRail/><EvidencePage/></>}/><Route path="/board" element={<><NavRail/><BoardPage/></>}/><Route path="/student/:id" element={<><NavRail/><InterrogationPage/></>}/><Route path="/hq" element={<><NavRail/><HQPage/></>}/><Route path="/map" element={<><NavRail/><MapPage/></>}/><Route path="/timeline" element={<><NavRail/><TimelinePage/></>}/><Route path="/network" element={<><NavRail/><NetworkPage/></>}/><Route path="/accuse" element={<><NavRail/><AccusePage/></>}/><Route path="/closed" element={<><NavRail/><CaseClosedPage/></>}/></Routes></div>}
+import TitlePage from './pages/TitlePage'
+import BriefingPage from './pages/BriefingPage'
+import EvidencePage from './pages/EvidencePage'
+import BoardPage from './pages/BoardPage'
+import InterrogationPage from './pages/InterrogationPage'
+import HQPage from './pages/HQPage'
+import AccusePage from './pages/AccusePage'
+import CaseClosedPage from './pages/CaseClosedPage'
+import MapPage from './pages/MapPage'
+import TimelinePage from './pages/TimelinePage'
+import NetworkPage from './pages/NetworkPage'
+import VizLabPage from './pages/VizLabPage'
+
+function GameRoute({ children }: { children: ReactNode }) {
+  return <><NavRail />{children}</>
+}
+
+export default function App() {
+  const loadCase = useCaseStore((state) => state.loadCase)
+  useEffect(() => { void loadCase() }, [loadCase])
+  useEffect(() => {
+    const onPress = (event: PointerEvent) => {
+      const target = (event.target as HTMLElement).closest('button, a')
+      if (!target) return
+      target.classList.add('game-press')
+      window.setTimeout(() => target.classList.remove('game-press'), 150)
+      const text = target.textContent?.toLowerCase() ?? ''
+      playGameSound(target.classList.contains('polaroid') ? 'select' : text.includes('accuse') ? 'danger' : text.includes('clue') ? 'clue' : text.includes('submit') ? 'success' : 'tap')
+    }
+    document.addEventListener('pointerdown', onPress)
+    return () => document.removeEventListener('pointerdown', onPress)
+  }, [])
+  return <div className="app-shell"><Routes>
+    <Route path="/" element={<TitlePage />} />
+    <Route path="/briefing" element={<GameRoute><BriefingPage /></GameRoute>} />
+    <Route path="/evidence" element={<GameRoute><EvidencePage /></GameRoute>} />
+    <Route path="/board" element={<GameRoute><BoardPage /></GameRoute>} />
+    <Route path="/student/:id" element={<GameRoute><InterrogationPage /></GameRoute>} />
+    <Route path="/hq" element={<GameRoute><HQPage /></GameRoute>} />
+    <Route path="/map" element={<GameRoute><MapPage /></GameRoute>} />
+    <Route path="/timeline" element={<GameRoute><TimelinePage /></GameRoute>} />
+    <Route path="/network" element={<GameRoute><NetworkPage /></GameRoute>} />
+    <Route path="/lab" element={<GameRoute><VizLabPage /></GameRoute>} />
+    <Route path="/accuse" element={<GameRoute><AccusePage /></GameRoute>} />
+    <Route path="/closed" element={<GameRoute><CaseClosedPage /></GameRoute>} />
+  </Routes></div>
+}

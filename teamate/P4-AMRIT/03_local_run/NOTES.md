@@ -45,3 +45,12 @@ Result:
 - `npm.cmd run lint` completed with one non-blocking React manual-memoization warning in P4's `BoardPage.tsx`.
 - FastAPI is serving `http://127.0.0.1:8000` and Vite is serving `http://127.0.0.1:5173`.
 - Verified API health, the live Case endpoint through both FastAPI and Vite's proxy, plus every game and visualisation route: all returned HTTP 200.
+
+## P5 visualisation integration — origin/main at `1e1ce1a`
+
+- Merged P5's latest visualisation updates, including the satellite-map fallback, upgraded map/timeline/network components, the Viz Lab, and their Leaflet/MapLibre dependencies.
+- Preserved the P4 game flow, shared game components, sound feedback, P4 router, and P4 teammate worklog while resolving the two P4-owned conflicts in `App.tsx` and `index.css`.
+- Added `/lab` to the P4 router and navigation rail so the new P5 Viz Lab is reachable alongside Map, Timeline, and Network.
+- Verified `python -m pytest -q` in `backend/` (3 passed), the combined front-end production build, FastAPI health, Vite's proxied Case endpoint, and all P4/P5 routes including `/lab` (HTTP 200).
+- Build warning: the combined JavaScript bundle is 1.38 MB before compression. It is functional; split map/network libraries into lazy-loaded routes if bundle size becomes a deployment concern.
+- Lint warnings: P4 Board manual memoization and P5 Map state-in-effect. Neither blocks the build or local run.

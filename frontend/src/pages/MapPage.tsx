@@ -1,6 +1,15 @@
-import { useEffect, useMemo, useRef } from 'react'
-import * as d3 from 'd3'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import maplibregl from 'maplibre-gl'
+import type {
+  GeoJSONSource,
+  Map as MapLibreMap,
+  MapLayerMouseEvent,
+  SkySpecification,
+} from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
+import type { Feature, FeatureCollection, Polygon } from 'geojson'
 import TimeSlider from '../components/viz/TimeSlider'
+import CampusMapFallback from '../components/viz/CampusMapFallback'
 import { hhmm, verdictColor } from '../components/viz/util'
 import {
   buildingById,
@@ -9,20 +18,38 @@ import {
   useCaseStore,
   visitsFor,
 } from '../store/useCaseStore'
-import type { Flag, Student } from '../types/case'
+import type { Building, Flag, Student } from '../types/case'
 
-interface OccNode {
-  id: string
-  student: Student
-  buildingId: string
-  x: number
-  y: number
+/** Metres → lon/lat offsets at Glasgow latitude. */
+function offsetLonLat(
+  lat: number,
+  lon: number,
+  eastM: number,
+  northM: number,
+): [number, number] {
+  const dLat = northM / 111_320
+  const dLon = eastM / (111_320 * Math.cos((lat * Math.PI) / 180))
+  return [lon + dLon, lat + dLat]
 }
 
-function studentDotColor(
-  studentId: string,
-  judgeMode: boolean,
-): string {
+/** Rectangular footprint (metres), axis-aligned in local ENU. */
+function buildingPolygon(
+  lat: number,
+  lon: number,
+  halfW: number,
+  halfH: number,
+): Polygon {
+  const corners: [number, number][] = [
+    offsetLonLat(lat, lon, -halfW, -halfH),
+    offsetLonLat(lat, lon, halfW, -halfH),
+    offsetLonLat(lat, lon, halfW, halfH),
+    offsetLonLat(lat, lon, -halfW, halfH),
+    offsetLonLat(lat, lon, -halfW, -halfH),
+  ]
+  return { type: 'Polygon', coordinates: [corners] }
+}
+
+function studentDotColor(studentId: string, judgeMode: boolean): string {
   const c = useCaseStore.getState().case
   const sus = suspectFor(c, studentId)
   if (!sus) return '#c8b89a'
@@ -48,6 +75,137 @@ function flagsAtBuilding(
   })
 }
 
+function buildingFeatures(
+  buildings: Building[],
+  visitCounts: Map<string, number>,
+  selectedId: string | null,
+  flaggedIds: Set<string>,
+): FeatureCollection {
+  const maxV = Math.max(1, ...visitCounts.values())
+  return {
+    type: 'FeatureCollection',
+    features: buildings.map((b) => {
+      const visits = visitCounts.get(b.id) ?? 0
+      const size = 18 + (visits / maxV) * 22
+      const height = 14 + (visits / maxV) * 48 + (b.id === selectedId ? 12 : 0)
+      let color = '#3d4f6f'
+      if (flaggedIds.has(b.id)) color = '#c0392b'
+      else if (b.id === selectedId) color = '#ffb347'
+      else if (b.min_age && b.min_age >= 18) color = '#6b4c9a'
+      return {
+        type: 'Feature' as const,
+        properties: {
+          id: b.id,
+          name: b.name,
+          open: b.open_label,
+          height,
+          color,
+          base: 0,
+        },
+        geometry: buildingPolygon(b.lat, b.lon, size, size * 0.75),
+      }
+    }),
+  }
+}
+
+function occupantFeatures(
+  occupantsByBuilding: Map<string, Student[]>,
+  buildings: Building[],
+  judgeMode: boolean,
+  selectedStudentId: string | null,
+): FeatureCollection {
+  const byId = new Map(buildings.map((b) => [b.id, b]))
+  const features: Feature[] = []
+  for (const [bid, students] of occupantsByBuilding) {
+    const b = byId.get(bid)
+    if (!b) continue
+    const n = students.length
+    students.forEach((st, i) => {
+      const angle = (i / Math.max(n, 1)) * Math.PI * 2 - Math.PI / 2
+      const r = 12 + Math.min(n, 8) * 2
+      const [lon, lat] = offsetLonLat(
+        b.lat,
+        b.lon,
+        Math.cos(angle) * r,
+        Math.sin(angle) * r,
+      )
+      features.push({
+        type: 'Feature',
+        properties: {
+          id: st.id,
+          name: st.name,
+          color: studentDotColor(st.id, judgeMode),
+          selected: st.id === selectedStudentId ? 1 : 0,
+          buildingId: bid,
+        },
+        geometry: { type: 'Point', coordinates: [lon, lat] },
+      })
+    })
+  }
+  return { type: 'FeatureCollection', features }
+}
+
+function pathFeature(
+  c: NonNullable<ReturnType<typeof useCaseStore.getState>['case']>,
+  studentId: string | null,
+): FeatureCollection {
+  if (!studentId) return { type: 'FeatureCollection', features: [] }
+  const visits = visitsFor(c, studentId)
+    .slice()
+    .sort((a, b) => a.start - b.start)
+  const byId = new Map(c.buildings.map((b) => [b.id, b]))
+  const coords: [number, number][] = []
+  for (const v of visits) {
+    const b = byId.get(v.building_id)
+    if (b) coords.push([b.lon, b.lat])
+  }
+  if (coords.length < 2) return { type: 'FeatureCollection', features: [] }
+  return {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'LineString', coordinates: coords },
+      },
+    ],
+  }
+}
+
+const CAMPUS: [number, number] = [-4.2895, 55.8723]
+
+/** Esri World Imagery + labels — free raster satellite, no API key. */
+const SATELLITE_STYLE: maplibregl.StyleSpecification = {
+  version: 8,
+  name: 'UofG Satellite',
+  glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+  sources: {
+    esri_sat: {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      ],
+      tileSize: 256,
+      attribution:
+        'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+      maxzoom: 19,
+    },
+    esri_ref: {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+      ],
+      tileSize: 256,
+      attribution: '',
+      maxzoom: 19,
+    },
+  },
+  layers: [
+    { id: 'satellite', type: 'raster', source: 'esri_sat' },
+    { id: 'places', type: 'raster', source: 'esri_ref', paint: { 'raster-opacity': 0.9 } },
+  ],
+}
+
 export default function MapPage() {
   const c = useCaseStore((s) => s.case)
   const replayTime = useCaseStore((s) => s.replayTime)
@@ -58,8 +216,10 @@ export default function MapPage() {
   const judgeMode = useCaseStore((s) => s.judgeMode)
   const revealedFlagIds = useCaseStore((s) => s.revealedFlagIds)
 
-  const svgRef = useRef<SVGSVGElement | null>(null)
   const wrapRef = useRef<HTMLDivElement | null>(null)
+  const mapRef = useRef<MapLibreMap | null>(null)
+  const [mapReady, setMapReady] = useState(false)
+  const [mapError, setMapError] = useState<string | null>(null)
 
   const visitCounts = useMemo(() => {
     const m = new Map<string, number>()
@@ -84,9 +244,19 @@ export default function MapPage() {
     return m
   }, [c, replayTime])
 
+  const flaggedBuildingIds = useMemo(() => {
+    const ids = new Set<string>()
+    if (!c) return ids
+    for (const b of c.buildings) {
+      if (flagsAtBuilding(c.flags, b.id, replayTime, revealedFlagIds, judgeMode).length) {
+        ids.add(b.id)
+      }
+    }
+    return ids
+  }, [c, replayTime, revealedFlagIds, judgeMode])
+
   const selectedBuilding = buildingById(c, selectedBuildingId)
   const selectedStudent = studentById(c, selectedStudentId)
-
   const sideOccupants = selectedBuildingId
     ? (occupantsByBuilding.get(selectedBuildingId) ?? [])
     : []
@@ -95,231 +265,262 @@ export default function MapPage() {
       ? flagsAtBuilding(c.flags, selectedBuildingId, replayTime, revealedFlagIds, judgeMode)
       : []
 
+  const pathCoords = useMemo(() => {
+    if (!c || !selectedStudentId) return [] as [number, number][]
+    const visits = visitsFor(c, selectedStudentId)
+      .slice()
+      .sort((a, b) => a.start - b.start)
+    const byId = new Map(c.buildings.map((b) => [b.id, b]))
+    const coords: [number, number][] = []
+    for (const v of visits) {
+      const b = byId.get(v.building_id)
+      if (b) coords.push([b.lon, b.lat])
+    }
+    return coords
+  }, [c, selectedStudentId])
+
+  // Create MapLibre 3D once the case is loaded (needs WebGL; Leaflet fallback if it fails)
   useEffect(() => {
-    const svgEl = svgRef.current
-    const wrap = wrapRef.current
-    if (!svgEl || !wrap || !c) return
+    if (!c || mapError) return
+    const el = wrapRef.current
+    if (!el || mapRef.current) return
 
-    const svg = d3.select(svgEl)
-    const buildings = c.buildings
+    let cancelled = false
+    let ro: ResizeObserver | null = null
+    let map: MapLibreMap | null = null
 
-    const draw = () => {
-      const { width, height } = wrap.getBoundingClientRect()
-      if (width < 40 || height < 40) return
+    const MapCtor = maplibregl.Map ?? (maplibregl as unknown as { default: typeof maplibregl }).default?.Map
+    if (!MapCtor) {
+      setMapError('MapLibre Map constructor missing from bundle')
+      return
+    }
 
-      svg.attr('viewBox', `0 0 ${width} ${height}`).attr('width', width).attr('height', height)
-      svg.selectAll('*').remove()
-
-      const g = svg.append('g')
-
-      // Dark campus backdrop
-      g.append('rect')
-        .attr('width', width)
-        .attr('height', height)
-        .attr('fill', '#0e1218')
-
-      const pad = 48
-      const projection = d3.geoMercator().fitExtent(
-        [
-          [pad, pad],
-          [width - pad, height - pad],
-        ],
-        {
-          type: 'FeatureCollection',
-          features: buildings.map((b) => ({
-            type: 'Feature' as const,
-            properties: {},
-            geometry: { type: 'Point' as const, coordinates: [b.lon, b.lat] },
-          })),
-        },
-      )
-
-      const maxVisits = d3.max([...visitCounts.values()]) ?? 1
-      const rScale = d3.scaleSqrt().domain([0, maxVisits]).range([14, 36])
-
-      const positions = new Map<string, [number, number]>()
-      for (const b of buildings) {
-        const p = projection([b.lon, b.lat])
-        if (p) positions.set(b.id, p)
+    const start = () => {
+      if (cancelled || mapRef.current) return
+      const { width, height } = el.getBoundingClientRect()
+      if (width < 40 || height < 40) {
+        requestAnimationFrame(start)
+        return
       }
 
-      // Soft glow layer for flagged buildings
-      const glowLayer = g.append('g').attr('class', 'glows')
-      const bLayer = g.append('g').attr('class', 'buildings')
-      const occLayer = g.append('g').attr('class', 'occupants')
-      const pathLayer = g.append('g').attr('class', 'student-path')
-      const labelLayer = g.append('g').attr('class', 'labels')
-
-      for (const b of buildings) {
-        const xy = positions.get(b.id)
-        if (!xy) continue
-        const [x, y] = xy
-        const r = rScale(visitCounts.get(b.id) ?? 0)
-        const glowFlags = flagsAtBuilding(
-          c.flags,
-          b.id,
-          replayTime,
-          revealedFlagIds,
-          judgeMode,
-        )
-        const selected = b.id === selectedBuildingId
-
-        if (glowFlags.length > 0) {
-          glowLayer
-            .append('circle')
-            .attr('cx', x)
-            .attr('cy', y)
-            .attr('r', r + 10)
-            .attr('fill', 'none')
-            .attr('stroke', '#c0392b')
-            .attr('stroke-width', 3)
-            .attr('opacity', 0.85)
-            .style('filter', 'drop-shadow(0 0 8px #c0392b)')
-        }
-
-        bLayer
-          .append('circle')
-          .attr('cx', x)
-          .attr('cy', y)
-          .attr('r', r)
-          .attr('fill', selected ? '#3b2c20' : '#1c2433')
-          .attr('stroke', selected ? 'var(--accent)' : '#4a5568')
-          .attr('stroke-width', selected ? 2.5 : 1.5)
-          .attr('cursor', 'pointer')
-          .on('click', (event: MouseEvent) => {
-            event.stopPropagation()
-            selectBuilding(b.id === selectedBuildingId ? null : b.id)
-          })
-
-        labelLayer
-          .append('text')
-          .attr('x', x)
-          .attr('y', y + r + 14)
-          .attr('text-anchor', 'middle')
-          .attr('fill', '#d9c3a5')
-          .attr('font-size', 11)
-          .attr('font-family', 'var(--font-body)')
-          .text(b.name.length > 18 ? `${b.name.slice(0, 16)}…` : b.name)
-          .attr('pointer-events', 'none')
-      }
-
-      // Occupant dots with forceCollide around each building
-      const nodes: OccNode[] = []
-      for (const [bid, students] of occupantsByBuilding) {
-        const xy = positions.get(bid)
-        if (!xy) continue
-        const [bx, by] = xy
-        for (const st of students) {
-          nodes.push({
-            id: st.id,
-            student: st,
-            buildingId: bid,
-            x: bx + (Math.random() - 0.5) * 8,
-            y: by + (Math.random() - 0.5) * 8,
-          })
-        }
-      }
-
-      const sim = d3
-        .forceSimulation(nodes)
-        .force(
-          'x',
-          d3.forceX<OccNode>((d) => positions.get(d.buildingId)?.[0] ?? 0).strength(0.85),
-        )
-        .force(
-          'y',
-          d3.forceY<OccNode>((d) => positions.get(d.buildingId)?.[1] ?? 0).strength(0.85),
-        )
-        .force('collide', d3.forceCollide(7))
-        .stop()
-      for (let i = 0; i < 60; i++) sim.tick()
-
-      occLayer
-        .selectAll('circle')
-        .data(nodes, (d) => (d as OccNode).id)
-        .join('circle')
-        .attr('cx', (d) => d.x)
-        .attr('cy', (d) => d.y)
-        .attr('r', 5)
-        .attr('fill', (d) => studentDotColor(d.id, judgeMode))
-        .attr('stroke', (d) => (d.id === selectedStudentId ? '#fff' : 'none'))
-        .attr('stroke-width', 1.5)
-        .attr('cursor', 'pointer')
-        .on('click', (event: MouseEvent, d) => {
-          event.stopPropagation()
-          selectStudent(d.id === selectedStudentId ? null : d.id)
+      try {
+        map = new MapCtor({
+          container: el,
+          style: SATELLITE_STYLE,
+          center: CAMPUS,
+          zoom: 15.8,
+          pitch: 58,
+          bearing: -28,
+          attributionControl: { compact: true },
+          maxPitch: 70,
+          fadeDuration: 0,
         })
-        .append('title')
-        .text((d) => d.student.name)
-
-      // Selected student path through buildings in time order
-      if (selectedStudentId) {
-        const visits = visitsFor(c, selectedStudentId)
-          .slice()
-          .sort((a, b) => a.start - b.start)
-        const pts: [number, number][] = []
-        for (const v of visits) {
-          const xy = positions.get(v.building_id)
-          if (xy) pts.push(xy)
-        }
-        if (pts.length >= 2) {
-          const line = d3.line<[number, number]>().curve(d3.curveCardinal.tension(0.4))
-          const path = pathLayer
-            .append('path')
-            .attr('d', line(pts))
-            .attr('fill', 'none')
-            .attr('stroke', 'var(--accent)')
-            .attr('stroke-width', 2)
-            .attr('opacity', 0.9)
-            .attr('pointer-events', 'none')
-
-          const node = path.node()
-          if (node) {
-            const len = node.getTotalLength()
-            path
-              .attr('stroke-dasharray', `${len}`)
-              .attr('stroke-dashoffset', len)
-              .transition()
-              .duration(900)
-              .ease(d3.easeCubicOut)
-              .attr('stroke-dashoffset', 0)
-          }
-
-          pathLayer
-            .selectAll('circle.path-node')
-            .data(pts)
-            .join('circle')
-            .attr('class', 'path-node')
-            .attr('cx', (d) => d[0])
-            .attr('cy', (d) => d[1])
-            .attr('r', 3)
-            .attr('fill', 'var(--accent)')
-            .attr('pointer-events', 'none')
-        }
+        setMapError(null)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error('MapLibre failed to start', err)
+        setMapError(msg)
+        return
       }
 
-      svg.on('click', () => selectBuilding(null))
+      const Nav = maplibregl.NavigationControl ?? (maplibregl as unknown as { default: typeof maplibregl }).default?.NavigationControl
+      if (Nav) map.addControl(new Nav({ visualizePitch: true }), 'top-left')
+      mapRef.current = map
+
+      map.on('error', (e) => {
+        console.error('MapLibre error', e.error ?? e)
+        const msg = e.error?.message ?? 'Map failed to load tiles'
+        if (/webgl/i.test(msg)) setMapError(msg)
+      })
+
+      map.on('load', () => {
+        if (!map || cancelled) return
+        try {
+          map.setSky({
+            'sky-color': '#6ec6ff',
+            'horizon-color': '#c9e7ff',
+            'fog-color': '#8eb4c9',
+            'sky-horizon-blend': 0.5,
+            'horizon-fog-blend': 0.6,
+            'fog-ground-blend': 0.35,
+          } as SkySpecification)
+        } catch {
+          /* style without sky */
+        }
+
+        map.addSource('case-buildings', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+        })
+        map.addSource('case-occupants', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+        })
+        map.addSource('case-path', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+        })
+
+        map.addLayer({
+          id: 'case-buildings-3d',
+          type: 'fill-extrusion',
+          source: 'case-buildings',
+          paint: {
+            'fill-extrusion-color': ['get', 'color'],
+            'fill-extrusion-height': ['get', 'height'],
+            'fill-extrusion-base': ['get', 'base'],
+            'fill-extrusion-opacity': 0.92,
+            'fill-extrusion-vertical-gradient': true,
+          },
+        })
+
+        map.addLayer({
+          id: 'case-building-labels',
+          type: 'symbol',
+          source: 'case-buildings',
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-size': 11,
+            'text-offset': [0, 1.2],
+            'text-anchor': 'top',
+            'text-max-width': 10,
+          },
+          paint: {
+            'text-color': '#f0e6d4',
+            'text-halo-color': '#0b1020',
+            'text-halo-width': 1.4,
+          },
+        })
+
+        map.addLayer({
+          id: 'case-path-glow',
+          type: 'line',
+          source: 'case-path',
+          paint: {
+            'line-color': '#ffb347',
+            'line-width': 8,
+            'line-opacity': 0.25,
+            'line-blur': 4,
+          },
+        })
+        map.addLayer({
+          id: 'case-path-line',
+          type: 'line',
+          source: 'case-path',
+          paint: {
+            'line-color': '#ffb347',
+            'line-width': 3,
+            'line-opacity': 0.95,
+          },
+        })
+
+        map.addLayer({
+          id: 'case-occupants-halo',
+          type: 'circle',
+          source: 'case-occupants',
+          paint: {
+            'circle-radius': ['case', ['==', ['get', 'selected'], 1], 14, 10],
+            'circle-color': ['get', 'color'],
+            'circle-opacity': 0.25,
+            'circle-blur': 0.6,
+          },
+        })
+        map.addLayer({
+          id: 'case-occupants',
+          type: 'circle',
+          source: 'case-occupants',
+          paint: {
+            'circle-radius': ['case', ['==', ['get', 'selected'], 1], 8, 5.5],
+            'circle-color': ['get', 'color'],
+            'circle-stroke-width': ['case', ['==', ['get', 'selected'], 1], 2.5, 1],
+            'circle-stroke-color': '#fff8e7',
+          },
+        })
+
+        map.on('click', 'case-buildings-3d', (e: MapLayerMouseEvent) => {
+          const id = e.features?.[0]?.properties?.id as string | undefined
+          if (!id) return
+          const cur = useCaseStore.getState().selectedBuildingId
+          selectBuilding(cur === id ? null : id)
+        })
+        map.on('click', 'case-occupants', (e: MapLayerMouseEvent) => {
+          const id = e.features?.[0]?.properties?.id as string | undefined
+          if (!id) return
+          e.originalEvent.stopPropagation()
+          const cur = useCaseStore.getState().selectedStudentId
+          selectStudent(cur === id ? null : id)
+        })
+        map.on('mouseenter', 'case-buildings-3d', () => {
+          map!.getCanvas().style.cursor = 'pointer'
+        })
+        map.on('mouseleave', 'case-buildings-3d', () => {
+          map!.getCanvas().style.cursor = ''
+        })
+        map.on('mouseenter', 'case-occupants', () => {
+          map!.getCanvas().style.cursor = 'pointer'
+        })
+        map.on('mouseleave', 'case-occupants', () => {
+          map!.getCanvas().style.cursor = ''
+        })
+
+        map.resize()
+        setMapReady(true)
+      })
+
+      ro = new ResizeObserver(() => map?.resize())
+      ro.observe(el)
     }
 
-    draw()
-    const ro = new ResizeObserver(() => draw())
-    ro.observe(wrap)
+    start()
+
     return () => {
-      ro.disconnect()
-      svg.selectAll('*').remove()
+      cancelled = true
+      setMapReady(false)
+      ro?.disconnect()
+      map?.remove()
+      mapRef.current = null
     }
+  }, [c, mapError, selectBuilding, selectStudent])
+
+  // Push case geometry / occupants / path into the live map
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !c || !mapReady) return
+
+    const bSrc = map.getSource('case-buildings') as GeoJSONSource | undefined
+    const oSrc = map.getSource('case-occupants') as GeoJSONSource | undefined
+    const pSrc = map.getSource('case-path') as GeoJSONSource | undefined
+    if (!bSrc || !oSrc || !pSrc) return
+
+    bSrc.setData(
+      buildingFeatures(c.buildings, visitCounts, selectedBuildingId, flaggedBuildingIds),
+    )
+    oSrc.setData(
+      occupantFeatures(occupantsByBuilding, c.buildings, judgeMode, selectedStudentId),
+    )
+    pSrc.setData(pathFeature(c, selectedStudentId))
   }, [
     c,
-    replayTime,
+    mapReady,
+    visitCounts,
     selectedBuildingId,
     selectedStudentId,
-    judgeMode,
-    revealedFlagIds,
-    visitCounts,
     occupantsByBuilding,
-    selectBuilding,
-    selectStudent,
+    flaggedBuildingIds,
+    judgeMode,
   ])
+
+  // Fly to selected building
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !selectedBuilding) return
+    map.easeTo({
+      center: [selectedBuilding.lon, selectedBuilding.lat],
+      zoom: Math.max(map.getZoom(), 16.2),
+      duration: 700,
+      pitch: 62,
+    })
+  }, [selectedBuilding])
 
   if (!c) {
     return (
@@ -331,32 +532,125 @@ export default function MapPage() {
   }
 
   return (
-    <div className="page">
+    <div className="page map-3d-page">
+      <style>{`
+        .map-3d-page .map-stage {
+          flex: 1; min-height: 420px; height: 100%; position: relative;
+          border-radius: 16px; overflow: hidden;
+          border: 2px solid var(--panel-border);
+          background: #1a1510;
+          box-shadow: inset 0 0 60px rgba(0,0,0,0.45);
+        }
+        .map-3d-page .map-host {
+          position: absolute; inset: 0; z-index: 0;
+        }
+        .map-3d-page .map-host .maplibregl-canvas,
+        .map-3d-page .map-host canvas {
+          outline: none;
+        }
+        .map-3d-page .maplibregl-ctrl-attrib {
+          background: rgba(12,16,28,0.75) !important;
+          color: #8b95b0 !important;
+          font-size: 10px;
+        }
+        .map-3d-page .maplibregl-ctrl-group {
+          background: #1a2233 !important;
+          border: 1px solid #2a3355 !important;
+        }
+        .map-3d-page .maplibregl-ctrl-group button {
+          background-color: #1a2233 !important;
+        }
+        .map-3d-badge {
+          position: absolute; top: 12px; right: 12px; z-index: 2;
+          background: rgba(14,18,28,0.88); border: 1px solid #ffb34755;
+          color: #ffb347; font-family: var(--font-display); font-size: 12px;
+          padding: 6px 10px; border-radius: 10px; pointer-events: none;
+          letter-spacing: 0.04em;
+        }
+        .map-3d-legend {
+          position: absolute; left: 12px; bottom: 28px; z-index: 2;
+          background: rgba(14,18,28,0.9); border: 1px solid #2a3355;
+          border-radius: 10px; padding: 8px 12px; font-size: 11px; color: #d9c3a5;
+          display: flex; flex-direction: column; gap: 4px; pointer-events: none;
+        }
+        .map-3d-legend span { display: flex; align-items: center; gap: 8px; }
+        .map-3d-legend i {
+          width: 10px; height: 10px; border-radius: 3px; display: inline-block;
+        }
+      `}</style>
+
       <h2 className="page-title">
         Map — where it happened
-        <small>{c.meta.day_label}</small>
+        <small>{c.meta.day_label} · Gilmorehill campus</small>
       </h2>
       <p className="caption">
-        How to read: circles are buildings (size = visit count). Dots are people inside at the
-        replay time — red = conspirator, gold = mastermind (judge mode). Red glow = a flag fired
-        there near now. Click a building for details; select a student to trace their path.
+        How to read: Esri satellite of Gilmorehill (University of Glasgow).
+        {mapError
+          ? ' Isometric blocks mark case buildings (WebGL 3D unavailable here).'
+          : ' Pitch/orbit the 3D camera — extruded blocks are case buildings.'}{' '}
+        Taller = more visits; red = flag near now; purple = 18+ venue. Dots = people inside at replay
+        time. Click a building or person for the dossier.
       </p>
 
       <div className="row">
-        <div className="viz-stage panel" ref={wrapRef} style={{ padding: 0 }}>
-          <svg ref={svgRef} role="img" aria-label="Campus map" />
+        <div className="map-stage">
+          {!mapError ? <div className="map-host" ref={wrapRef} /> : null}
+          {mapError && c ? (
+            <CampusMapFallback
+              buildings={c.buildings}
+              visitCounts={visitCounts}
+              occupantsByBuilding={occupantsByBuilding}
+              flaggedBuildingIds={flaggedBuildingIds}
+              selectedBuildingId={selectedBuildingId}
+              selectedStudentId={selectedStudentId}
+              studentColor={(id) => studentDotColor(id, judgeMode)}
+              onSelectBuilding={selectBuilding}
+              onSelectStudent={selectStudent}
+              pathCoords={pathCoords}
+              replayLabel={hhmm(replayTime)}
+            />
+          ) : null}
+          <div className="map-3d-badge">
+            UofG · SATELLITE {mapError ? 'ISO' : '3D'} · {hhmm(replayTime)}
+          </div>
+          <div className="map-3d-legend">
+            <span>
+              <i style={{ background: '#3d4f6f' }} /> case building
+            </span>
+            <span>
+              <i style={{ background: '#c0392b' }} /> flagged now
+            </span>
+            <span>
+              <i style={{ background: '#d62828', borderRadius: '50%' }} /> conspirator
+            </span>
+            <span>
+              <i style={{ background: '#ffd166', borderRadius: '50%' }} /> mastermind
+            </span>
+          </div>
         </div>
 
         <aside className="side-panel">
           {selectedBuilding ? (
             <>
-              <h3 style={{ margin: '0 0 8px', fontFamily: 'var(--font-display)', color: 'var(--accent)' }}>
+              <h3
+                style={{
+                  margin: '0 0 8px',
+                  fontFamily: 'var(--font-display)',
+                  color: 'var(--accent)',
+                }}
+              >
                 {selectedBuilding.name}
               </h3>
               <p className="caption" style={{ marginBottom: 8 }}>
                 {selectedBuilding.open_label}
+                {selectedBuilding.min_age
+                  ? ` · ${selectedBuilding.min_age}+ only`
+                  : ''}
               </p>
               <p style={{ fontSize: 13, margin: '0 0 12px' }}>{selectedBuilding.description}</p>
+              <p className="caption" style={{ marginBottom: 12, fontFamily: 'var(--font-mono)' }}>
+                {selectedBuilding.lat.toFixed(5)}°N · {Math.abs(selectedBuilding.lon).toFixed(5)}°W
+              </p>
 
               {selectedBuilding.lectures.length > 0 && (
                 <div style={{ marginBottom: 12 }}>
@@ -376,7 +670,7 @@ export default function MapPage() {
                   Inside now ({hhmm(replayTime)})
                 </strong>
                 {sideOccupants.length === 0 ? (
-                  <p className="caption">Nobody here.</p>
+                  <p className="caption">Nobody here — scrub the day.</p>
                 ) : (
                   <ul style={{ margin: '4px 0 0', paddingLeft: 18, fontSize: 13 }}>
                     {sideOccupants.map((s) => (
@@ -412,10 +706,19 @@ export default function MapPage() {
             </>
           ) : (
             <>
-              <h3 style={{ margin: '0 0 8px', fontFamily: 'var(--font-display)', color: 'var(--accent)' }}>
-                Building info
+              <h3
+                style={{
+                  margin: '0 0 8px',
+                  fontFamily: 'var(--font-display)',
+                  color: 'var(--accent)',
+                }}
+              >
+                Campus dossier
               </h3>
-              <p className="caption">Click a building on the map.</p>
+              <p className="caption">
+                Orbit the real Gilmorehill map. Click an extruded building for hours, lectures and
+                who is inside at {hhmm(replayTime)}.
+              </p>
               {selectedStudent && (
                 <p style={{ fontSize: 13, marginTop: 12 }}>
                   Tracing <strong>{selectedStudent.name}</strong>
@@ -428,6 +731,24 @@ export default function MapPage() {
                     Clear
                   </button>
                 </p>
+              )}
+              {!mapError && (
+                <button
+                  type="button"
+                  className="btn accent"
+                  style={{ marginTop: 16, width: '100%' }}
+                  onClick={() => {
+                    mapRef.current?.easeTo({
+                      center: CAMPUS,
+                      zoom: 15.6,
+                      pitch: 58,
+                      bearing: -28,
+                      duration: 900,
+                    })
+                  }}
+                >
+                  Reset camera
+                </button>
               )}
             </>
           )}

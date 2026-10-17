@@ -5,7 +5,7 @@ import {
   boardStudents,
   visitsFor,
 } from '../../store/useCaseStore'
-import { timeScale, verdictColor, TOKENS } from './util'
+import { observeResize, timeScale, verdictColor, TOKENS } from './util'
 
 /** Small static storyline preview for Case Closed / newspaper. */
 export default function StorylineMini() {
@@ -120,9 +120,7 @@ export default function StorylineMini() {
     }
 
     draw()
-    const ro = new ResizeObserver(draw)
-    ro.observe(wrap)
-    return () => ro.disconnect()
+    return observeResize(wrap, draw)
   }, [caseData, students, buildingOrder])
 
   return (

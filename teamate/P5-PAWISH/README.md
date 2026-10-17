@@ -1,11 +1,10 @@
 # P5-PAWISH — Visualisation Developer (local worklog)
 
-**Path:** `teamate/P5-PAWISH/`
-
+**Path:** `teamate/P5-PAWISH/`  
 **Person:** Pawish (Person 5)  
-**Role:** Visualisation Developer (D3 + React)  
+**Role:** Visualisation Developer (D3 + React + MapLibre/Leaflet)  
+**Branch:** `P5-PAWISH`  
 **Tooling:** Cursor AI coding agent (multi-agent) helped implement this work  
-**Repo policy:** Role work stays local first; push to `main` only after the team integrates.
 
 ## How to use this folder
 
@@ -20,14 +19,28 @@ Each numbered subfolder is one step. Read `NOTES.md` inside for what was done, w
 | 4 | `04_components/` | TimeSlider, RedStrings, DayTimeline, Clock24, FlagHeatmap, RuleBars, minis |
 | 5 | `05_pages/` | MapPage, TimelinePage, NetworkPage |
 | 6 | `06_local_run/` | Commands used, URLs, screenshots/notes from local verify |
+| 7 | `07_polish_lab/` | ResizeObserver fix, sticky TimeSlider, `/lab` harness, page polish |
+| 8 | `08_satellite_map/` | Real Gilmorehill **satellite** map — MapLibre 3D + Leaflet ISO fallback |
+| 9 | `09_playwright_report/` | Full Playwright suite — **PASS 9/9** |
 
 ## Owns (from prompt)
 
-- `frontend/src/components/viz/*`
+- `frontend/src/components/viz/*` (incl. `CampusMapFallback.tsx`)
 - `frontend/src/pages/MapPage.tsx`
 - `frontend/src/pages/TimelinePage.tsx`
 - `frontend/src/pages/NetworkPage.tsx`
+- `frontend/src/pages/VizLabPage.tsx` (local acceptance harness)
 
-## Temporary host files (for local demo only)
+## Run
 
-Until P3/P4 land their work, a minimal Vite shell + sample Case types/store live under `frontend/` so Pawish can run charts. Those shell files are **stubs**, not the final P3/P4 ownership claim.
+```bash
+cd frontend
+npm install
+npm run dev -- --host 127.0.0.1 --port 5173
+```
+
+- Home `/` · Map `/map` · Timeline `/timeline` · Network `/network` · Lab `/lab`
+
+## Temporary host files
+
+Until P3/P4 land their final work, a Vite shell + sample Case types/store live under `frontend/` so Pawish can run charts. Shell files are stubs except where noted in the steps above.
