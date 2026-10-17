@@ -1,7 +1,7 @@
 # PROMPT FOR PERSON 2: DETECTIVE ANALYST
 
-> Paste this whole file into your AI coding assistant (Claude Code, Cursor, etc.) inside your clone of the
-> `boyd-orr-burndown-conspiracy` repo. Also attach `docs/design_reference.png` if your tool supports images.
+> Paste this whole file into your AI coding assistant (Cursor, Claude Code, Copilot, etc.) with the
+> `boyd-orr-burndown-conspiracy` repo open as the workspace. Also attach `docs/design_reference.png` if your tool supports images.
 
 You are my pair-programming assistant for a 24-hour hackathon. I am **Person 2 (Detective Analyst)** in a 5-person team that
 shares **one GitHub repo**. Read the shared context and my role below carefully, then help me build my part.
@@ -51,7 +51,7 @@ Every check is one rule shown as its own visualisation. LIAR / CONSPIRATOR / CLE
 Stack: **Python 3.11 + pandas + NetworkX** (analysis) → **FastAPI + Pydantic** (API) → **React + Vite + TypeScript +
 Tailwind + Zustand + Framer Motion + D3.js** (front end). One GitHub repo.
 
-## 3. The data (in `data/raw/`, from the organisers' zip)
+## 3. The data (in `data/raw/` — already in this repo)
 
 | File | Rows | Columns / format |
 |---|---|---|
@@ -103,34 +103,62 @@ Matthews' statements corroborate each other; Russell Dixon has only 1 log; 38 st
 
 ## 5. Repo structure and FILE OWNERSHIP (only edit files you own; ask the owner for changes)
 
+This repo is already on GitHub with **data + docs + prompts on `main`**. Do **not** move, rename, or duplicate
+`data/raw/`, `docs/`, `prompts/`, `AGENTS.md`, or `README.md`. Everyone clones the same tree and works the same way.
+
+How onboarding works for every role:
+1. `git pull origin main`
+2. Open this repo in your AI coding agent
+3. Paste **your** `prompts/PROMPT_N_*.md` in full (this file)
+4. Attach `docs/design_reference.png` if the tool accepts images
+5. Only create/edit files your role owns below. If you need another area changed, message that owner.
+
 ```
 boyd-orr-burndown-conspiracy/
-├── README.md                         P3
-├── data/raw/                         challenge data (already on main)
-├── docs/design_reference.png         P3
-├── backend/
+├── README.md                         team onboarding (keep; P3 may append run commands only)
+├── AGENTS.md                         rules for AI agents (shared — do not rewrite casually)
+├── .gitignore                        Python / Node / .env / zips (already set)
+├── prompts/                          team pack (already on main — paste these into your AI agent)
+│   ├── 00_START_HERE.md              everyone reads first
+│   ├── PROMPT_1_Data_Engineer.md     P1
+│   ├── PROMPT_2_Detective_Analyst.md P2
+│   ├── PROMPT_3_Backend_Lead.md      P3
+│   ├── PROMPT_4_Front_end_Lead.md    P4
+│   └── PROMPT_5_Visualisation_Developer.md  P5
+├── data/raw/                         challenge data (already on main — pipeline reads from here)
+│   ├── people_data.csv
+│   ├── location_data.csv
+│   ├── security_logs.csv
+│   └── student_statements.txt
+├── docs/
+│   ├── design_reference.png          UI look (already on main)
+│   └── challenge-brief.pdf           official organiser brief (already on main)
+├── backend/                          P3 scaffolds first (Hour 0–1), then P1/P2 fill their folders
 │   ├── requirements.txt              P3
 │   ├── app/
+│   │   ├── __init__.py
 │   │   ├── main.py                   P3  FastAPI app + routes
 │   │   ├── models.py                 P3  Pydantic contract (section 6), the single source of truth
 │   │   ├── config.py                 P3  settings + rule weights (section 7)
 │   │   ├── export.py                 P3  writes frontend/public/case.json
 │   │   ├── pipeline/                 P1
-│   │   │   ├── load.py               read raw files → raw DataFrames
+│   │   │   ├── __init__.py
+│   │   │   ├── load.py               read data/raw → raw DataFrames
 │   │   │   ├── buildings.py          parse buildings, opening hours, lectures, restrictions, aliases
 │   │   │   ├── clean.py              normalise IDs/names/locations/times/societies, identity resolution
 │   │   │   ├── statements.py         parse statement blocks
 │   │   │   ├── quality.py            DataQualityIssue list
-│   │   │   └── run.py                run_pipeline(paths) -> CleanData
+│   │   │   └── run.py                run_pipeline(raw_dir) -> CleanData
 │   │   └── analysis/                 P2
+│   │       ├── __init__.py
 │   │       ├── rules.py              each rule = function returning list[Flag]
 │   │       ├── testimony.py          claim extraction from statements (+ hypothetical detection)
 │   │       ├── meetings.py           co-location overlaps
 │   │       ├── scoring.py            scores, verdicts, mastermind
 │   │       ├── oddities.py           extra strange data
 │   │       └── build_case.py         build_case(clean, config) -> Case
-│   └── tests/  test_pipeline.py P1 · test_analysis.py P2 · test_api.py P3
-└── frontend/                         P4 creates the Vite project
+│   └── tests/                        test_pipeline.py P1 · test_analysis.py P2 · test_api.py P3
+└── frontend/                         P4 creates the Vite project (Hour 0–1)
     ├── public/case.sample.json       P3 (hand-made fake, available in hour 1)
     ├── public/case.json              generated by P3's export (committed at checkpoints)
     └── src/
@@ -271,12 +299,17 @@ with collapsible sections on the right, and labelled group boxes ("Conspirators"
 
 ## 11. Git workflow
 
-- One repo, branch `main`. Each person works on `p<N>-<topic>` branches (e.g. `p1-clean-ids`) and opens small PRs.
+- One repo (`boyd-orr-burndown-conspiracy`), branch `main`. Each person works on `p<N>-<topic>` branches
+  (e.g. `p1-clean-ids`) and opens small PRs into `main`.
 - **Never edit a file you don't own.** Changes to `models.py` / `case.ts` go through P3 (post in team chat first).
+- **Never move** `data/raw/`, `docs/`, or `prompts/` — every role must see the same paths.
+- Default raw path for the pipeline/API: `data/raw` (relative to the repo root). Do not invent a second data folder.
 - Pull `main` before starting each task. Commit often with clear messages.
 - Checkpoints: **H1** contract + sample JSON on main · **H6** real clean data · **H12** real `case.json` in the UI
   (most important) · **H18** feature freeze · **H22** pitch rehearsal.
-- Run locally: `cd backend && uvicorn app.main:app --reload --port 8000` and `cd frontend && npm run dev` (Vite proxies `/api` → 8000).
+- Run locally: `cd backend && uvicorn app.main:app --reload --port 8000` and `cd frontend && npm run dev`
+  (Vite proxies `/api` → 8000).
+
 
 ---
 
