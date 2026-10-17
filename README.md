@@ -4,6 +4,14 @@ GUTS / SAS hackathon case: find **6 conspirators** and **1 mastermind** in messy
 
 Repo: https://github.com/PawishrajhenAR/boyd-orr-burndown-conspiracy
 
+Local folder should be named **`boyd-orr-burndown-conspiracy`** (same as GitHub).  
+If yours is still `SaSProject`, run once in a normal terminal (not inside this chat):
+
+```bash
+mv ~/Projects/SaSProject ~/Projects/boyd-orr-burndown-conspiracy
+# then reopen Cursor on that folder (or the .code-workspace file)
+```
+
 ## Quick start
 
 ```bash
