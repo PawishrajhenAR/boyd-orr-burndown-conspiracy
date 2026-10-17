@@ -1,0 +1,1203 @@
+{
+  "meta": {
+    "case_name": "Case File #1105: The Boyd Orr Firework Plot",
+    "generated_at": "2026-10-17T12:00:00Z",
+    "day_label": "5 November (day before Bonfire Night)",
+    "source_files": [
+      "people_data.csv",
+      "security_logs.csv",
+      "location_data.csv",
+      "student_statements.txt"
+    ],
+    "counts": {
+      "students": 9,
+      "buildings": 14,
+      "visits": 26,
+      "flags": 11,
+      "meetings": 9
+    },
+    "conspirator_count": 6,
+    "time_min": 420,
+    "time_max": 1560
+  },
+  "buildings": [
+    {
+      "id": "boyd-orr-building",
+      "name": "Boyd Orr Building",
+      "lat": 55.8735737,
+      "lon": -4.2926741,
+      "open_start": 480,
+      "open_end": 1260,
+      "always_open": false,
+      "open_label": "08:00\u201321:00",
+      "lectures": [
+        {
+          "subject": "Computing Science",
+          "start": 600,
+          "end": 720,
+          "source": "description"
+        }
+      ],
+      "min_age": null,
+      "description": "Hosts Computing Science lectures 1000\u20131200.",
+      "aliases": [
+        "boyd orr"
+      ]
+    },
+    {
+      "id": "library",
+      "name": "Library",
+      "lat": 55.8733888,
+      "lon": -4.289028,
+      "open_start": 420,
+      "open_end": 1560,
+      "always_open": false,
+      "open_label": "07:00\u201302:00",
+      "lectures": [],
+      "min_age": null,
+      "description": "University library.",
+      "aliases": [
+        "lib"
+      ]
+    },
+    {
+      "id": "the-hive",
+      "name": "The Hive",
+      "lat": 55.872865,
+      "lon": -4.284643,
+      "open_start": 1320,
+      "open_end": 1560,
+      "always_open": false,
+      "open_label": "22:00\u201302:00",
+      "lectures": [],
+      "min_age": 18,
+      "description": "Strictly over 18s only.",
+      "aliases": [
+        "hive"
+      ]
+    },
+    {
+      "id": "kelvingrove-park",
+      "name": "Kelvingrove Park",
+      "lat": 55.8690076,
+      "lon": -4.2823603,
+      "open_start": 0,
+      "open_end": 0,
+      "always_open": true,
+      "open_label": "Always open",
+      "lectures": [],
+      "min_age": null,
+      "description": "Park.",
+      "aliases": [
+        "park",
+        "kelvingrove"
+      ]
+    },
+    {
+      "id": "james-watt",
+      "name": "James Watt Building",
+      "lat": 55.8715,
+      "lon": -4.2865,
+      "open_start": 480,
+      "open_end": 1260,
+      "always_open": false,
+      "open_label": "08:00\u201321:00",
+      "lectures": [
+        {
+          "subject": "Engineering",
+          "start": 600,
+          "end": 720,
+          "source": "description"
+        }
+      ],
+      "min_age": null,
+      "description": "Engineering lectures.",
+      "aliases": [
+        "james watt"
+      ]
+    },
+    {
+      "id": "main-building",
+      "name": "Main Building",
+      "lat": 55.8719,
+      "lon": -4.2882,
+      "open_start": 480,
+      "open_end": 1260,
+      "always_open": false,
+      "open_label": "08:00\u201321:00",
+      "lectures": [
+        {
+          "subject": "English Literature",
+          "start": 540,
+          "end": 660,
+          "source": "description"
+        }
+      ],
+      "min_age": null,
+      "description": "Arts lectures.",
+      "aliases": [
+        "main"
+      ]
+    },
+    {
+      "id": "wolfson",
+      "name": "Wolfson Medical Building",
+      "lat": 55.8722,
+      "lon": -4.291,
+      "open_start": 480,
+      "open_end": 1260,
+      "always_open": false,
+      "open_label": "08:00\u201321:00",
+      "lectures": [
+        {
+          "subject": "Medicine",
+          "start": 780,
+          "end": 900,
+          "source": "description"
+        }
+      ],
+      "min_age": null,
+      "description": "Medicine.",
+      "aliases": [
+        "wolfson"
+      ]
+    },
+    {
+      "id": "queen-margaret-union",
+      "name": "Queen Margaret Union",
+      "lat": 55.873,
+      "lon": -4.2905,
+      "open_start": 480,
+      "open_end": 1440,
+      "always_open": false,
+      "open_label": "08:00\u201300:00",
+      "lectures": [],
+      "min_age": null,
+      "description": "Union.",
+      "aliases": [
+        "qmu",
+        "queen margaret"
+      ]
+    },
+    {
+      "id": "st-andrews",
+      "name": "St Andrews Building",
+      "lat": 55.8728,
+      "lon": -4.2875,
+      "open_start": 480,
+      "open_end": 1260,
+      "always_open": false,
+      "open_label": "08:00\u201321:00",
+      "lectures": [
+        {
+          "subject": "Education",
+          "start": 600,
+          "end": 720,
+          "source": "description"
+        }
+      ],
+      "min_age": null,
+      "description": "Education.",
+      "aliases": [
+        "st andrews"
+      ]
+    },
+    {
+      "id": "chemistry",
+      "name": "Chemistry Building",
+      "lat": 55.872,
+      "lon": -4.2935,
+      "open_start": 480,
+      "open_end": 1260,
+      "always_open": false,
+      "open_label": "08:00\u201321:00",
+      "lectures": [
+        {
+          "subject": "Chemistry",
+          "start": 600,
+          "end": 720,
+          "source": "description"
+        }
+      ],
+      "min_age": null,
+      "description": "Chemistry.",
+      "aliases": [
+        "chem"
+      ]
+    },
+    {
+      "id": "maths",
+      "name": "Mathematics Building",
+      "lat": 55.8712,
+      "lon": -4.2898,
+      "open_start": 480,
+      "open_end": 1260,
+      "always_open": false,
+      "open_label": "08:00\u201321:00",
+      "lectures": [
+        {
+          "subject": "Mathematics",
+          "start": 540,
+          "end": 660,
+          "source": "description"
+        }
+      ],
+      "min_age": null,
+      "description": "Maths.",
+      "aliases": [
+        "maths"
+      ]
+    },
+    {
+      "id": "physics",
+      "name": "Physics Building",
+      "lat": 55.871,
+      "lon": -4.2915,
+      "open_start": 480,
+      "open_end": 1260,
+      "always_open": false,
+      "open_label": "08:00\u201321:00",
+      "lectures": [
+        {
+          "subject": "Physics",
+          "start": 540,
+          "end": 600,
+          "source": "inferred"
+        }
+      ],
+      "min_age": null,
+      "description": "Physics.",
+      "aliases": [
+        "physics"
+      ]
+    },
+    {
+      "id": "vet",
+      "name": "Veterinary School",
+      "lat": 55.8745,
+      "lon": -4.295,
+      "open_start": 480,
+      "open_end": 1260,
+      "always_open": false,
+      "open_label": "08:00\u201321:00",
+      "lectures": [
+        {
+          "subject": "Veterinary Medicine",
+          "start": 600,
+          "end": 720,
+          "source": "description"
+        }
+      ],
+      "min_age": null,
+      "description": "Vet.",
+      "aliases": [
+        "vet"
+      ]
+    },
+    {
+      "id": "union",
+      "name": "Glasgow University Union",
+      "lat": 55.8727,
+      "lon": -4.285,
+      "open_start": 600,
+      "open_end": 1440,
+      "always_open": false,
+      "open_label": "10:00\u201300:00",
+      "lectures": [],
+      "min_age": null,
+      "description": "GUU.",
+      "aliases": [
+        "guu",
+        "union"
+      ]
+    }
+  ],
+  "students": [
+    {
+      "id": "2456431B",
+      "name": "Oscar Brown",
+      "age": 23,
+      "sex": "Male",
+      "year": 5,
+      "subject": "Engineering",
+      "height": 181,
+      "hair_colour": "#c92450",
+      "societies": [
+        "Astrology Society"
+      ],
+      "has_statement": true,
+      "raw_ids": [
+        "2456431B",
+        "2656431B"
+      ],
+      "lecture": {
+        "subject": "Engineering",
+        "start": 600,
+        "end": 720,
+        "source": "description"
+      },
+      "lecture_building_id": "james-watt"
+    },
+    {
+      "id": "2774868P",
+      "name": "Alice Patterson",
+      "age": 26,
+      "sex": "Female",
+      "year": 2,
+      "subject": "Engineering",
+      "height": 171,
+      "hair_colour": "#cce88b",
+      "societies": [
+        "Volleyball Society"
+      ],
+      "has_statement": true,
+      "raw_ids": [
+        "2774868P"
+      ],
+      "lecture": {
+        "subject": "Engineering",
+        "start": 600,
+        "end": 720,
+        "source": "description"
+      },
+      "lecture_building_id": "james-watt"
+    },
+    {
+      "id": "2786843M",
+      "name": "Abdul Murphy",
+      "age": 24,
+      "sex": "Male",
+      "year": 2,
+      "subject": "English Literature",
+      "height": 167,
+      "hair_colour": "#e079db",
+      "societies": [
+        "Bad Movie Society"
+      ],
+      "has_statement": true,
+      "raw_ids": [
+        "2786843M"
+      ],
+      "lecture": {
+        "subject": "English Literature",
+        "start": 540,
+        "end": 660,
+        "source": "description"
+      },
+      "lecture_building_id": "main-building"
+    },
+    {
+      "id": "2546112P",
+      "name": "Eric Parkin",
+      "age": 21,
+      "sex": "Male",
+      "year": 4,
+      "subject": "Pharmacy",
+      "height": 170,
+      "hair_colour": "#22b7b2",
+      "societies": [],
+      "has_statement": true,
+      "raw_ids": [
+        "2546112P"
+      ],
+      "lecture": null,
+      "lecture_building_id": null
+    },
+    {
+      "id": "2712324G",
+      "name": "Jonny Craig",
+      "age": 21,
+      "sex": "Male",
+      "year": 3,
+      "subject": "Chemistry",
+      "height": 178,
+      "hair_colour": "#85d13e",
+      "societies": [
+        "Skate Society"
+      ],
+      "has_statement": true,
+      "raw_ids": [
+        "2712324G",
+        "2912324G"
+      ],
+      "lecture": {
+        "subject": "Chemistry",
+        "start": 600,
+        "end": 720,
+        "source": "description"
+      },
+      "lecture_building_id": "chemistry"
+    },
+    {
+      "id": "2813225B",
+      "name": "Stuart Wands",
+      "age": 17,
+      "sex": "Male",
+      "year": 1,
+      "subject": "Computing Science",
+      "height": 173,
+      "hair_colour": "#a0f489",
+      "societies": [],
+      "has_statement": true,
+      "raw_ids": [
+        "2813225b"
+      ],
+      "lecture": {
+        "subject": "Computing Science",
+        "start": 600,
+        "end": 720,
+        "source": "description"
+      },
+      "lecture_building_id": "boyd-orr-building"
+    },
+    {
+      "id": "2453876J",
+      "name": "Scott Johnston",
+      "age": 24,
+      "sex": "Male",
+      "year": 5,
+      "subject": "Computing Science",
+      "height": 180,
+      "hair_colour": "#adf931",
+      "societies": [
+        "Volleyball Society"
+      ],
+      "has_statement": true,
+      "raw_ids": [
+        "2453876J"
+      ],
+      "lecture": {
+        "subject": "Computing Science",
+        "start": 600,
+        "end": 720,
+        "source": "description"
+      },
+      "lecture_building_id": "boyd-orr-building"
+    },
+    {
+      "id": "2000001A",
+      "name": "Amira Clear",
+      "age": 20,
+      "sex": "Female",
+      "year": 2,
+      "subject": "Physics",
+      "height": 165,
+      "hair_colour": "#88aaff",
+      "societies": [],
+      "has_statement": true,
+      "raw_ids": [
+        "2000001A"
+      ],
+      "lecture": {
+        "subject": "Physics",
+        "start": 540,
+        "end": 600,
+        "source": "inferred"
+      },
+      "lecture_building_id": "physics"
+    },
+    {
+      "id": "2000002B",
+      "name": "Dev Clear",
+      "age": 21,
+      "sex": "Male",
+      "year": 3,
+      "subject": "Mathematics",
+      "height": 175,
+      "hair_colour": "#66cc99",
+      "societies": [
+        "Soup Society"
+      ],
+      "has_statement": true,
+      "raw_ids": [
+        "2000002B"
+      ],
+      "lecture": {
+        "subject": "Mathematics",
+        "start": 540,
+        "end": 660,
+        "source": "description"
+      },
+      "lecture_building_id": "maths"
+    }
+  ],
+  "visits": [
+    {
+      "id": "v_ob1",
+      "student_id": "2456431B",
+      "building_id": "boyd-orr-building",
+      "start": 600,
+      "end": 660,
+      "raw_time": "1000-1100",
+      "raw_student_id": "2456431B",
+      "raw_location": "boyd-orr-building"
+    },
+    {
+      "id": "v_ob2",
+      "student_id": "2456431B",
+      "building_id": "library",
+      "start": 630,
+      "end": 690,
+      "raw_time": "1030-1130",
+      "raw_student_id": "2456431B",
+      "raw_location": "library"
+    },
+    {
+      "id": "v_ob3",
+      "student_id": "2456431B",
+      "building_id": "kelvingrove-park",
+      "start": 900,
+      "end": 930,
+      "raw_time": "1500-1530",
+      "raw_student_id": "2456431B",
+      "raw_location": "kelvingrove-park"
+    },
+    {
+      "id": "v_ob4",
+      "student_id": "2456431B",
+      "building_id": "main-building",
+      "start": 910,
+      "end": 940,
+      "raw_time": "1510-1540",
+      "raw_student_id": "2456431B",
+      "raw_location": "main-building"
+    },
+    {
+      "id": "v_ap1",
+      "student_id": "2774868P",
+      "building_id": "boyd-orr-building",
+      "start": 600,
+      "end": 720,
+      "raw_time": "1000-1200",
+      "raw_student_id": "2774868P",
+      "raw_location": "boyd-orr-building"
+    },
+    {
+      "id": "v_ap2",
+      "student_id": "2774868P",
+      "building_id": "library",
+      "start": 800,
+      "end": 900,
+      "raw_time": "1320-1500",
+      "raw_student_id": "2774868P",
+      "raw_location": "library"
+    },
+    {
+      "id": "v_am1",
+      "student_id": "2786843M",
+      "building_id": "main-building",
+      "start": 540,
+      "end": 660,
+      "raw_time": "0900-1100",
+      "raw_student_id": "2786843M",
+      "raw_location": "main-building"
+    },
+    {
+      "id": "v_am2",
+      "student_id": "2786843M",
+      "building_id": "boyd-orr-building",
+      "start": 1328,
+      "end": 1380,
+      "raw_time": "2208-2300",
+      "raw_student_id": "2786843M",
+      "raw_location": "boyd-orr-building"
+    },
+    {
+      "id": "v_ep1",
+      "student_id": "2546112P",
+      "building_id": "library",
+      "start": 600,
+      "end": 700,
+      "raw_time": "1000-1140",
+      "raw_student_id": "2546112P",
+      "raw_location": "library"
+    },
+    {
+      "id": "v_ep2",
+      "student_id": "2546112P",
+      "building_id": "union",
+      "start": 1200,
+      "end": 1260,
+      "raw_time": "2000-2100",
+      "raw_student_id": "2546112P",
+      "raw_location": "union"
+    },
+    {
+      "id": "v_jc1",
+      "student_id": "2712324G",
+      "building_id": "chemistry",
+      "start": 600,
+      "end": 650,
+      "raw_time": "1000-1050",
+      "raw_student_id": "2912324G",
+      "raw_location": "chemistry"
+    },
+    {
+      "id": "v_jc2",
+      "student_id": "2712324G",
+      "building_id": "library",
+      "start": 700,
+      "end": 800,
+      "raw_time": "1140-1320",
+      "raw_student_id": "2712324G",
+      "raw_location": "library"
+    },
+    {
+      "id": "v_sw1",
+      "student_id": "2813225B",
+      "building_id": "boyd-orr-building",
+      "start": 600,
+      "end": 720,
+      "raw_time": "1000-1200",
+      "raw_student_id": "2813225B",
+      "raw_location": "boyd-orr-building"
+    },
+    {
+      "id": "v_sw2",
+      "student_id": "2813225B",
+      "building_id": "the-hive",
+      "start": 1328,
+      "end": 1488,
+      "raw_time": "2208-2448",
+      "raw_student_id": "2813225B",
+      "raw_location": "the-hive"
+    },
+    {
+      "id": "v_sj1",
+      "student_id": "2453876J",
+      "building_id": "kelvingrove-park",
+      "start": 475,
+      "end": 500,
+      "raw_time": "0755-0820",
+      "raw_student_id": "2453876J",
+      "raw_location": "kelvingrove-park"
+    },
+    {
+      "id": "v_sj2",
+      "student_id": "2453876J",
+      "building_id": "boyd-orr-building",
+      "start": 600,
+      "end": 720,
+      "raw_time": "1000-1200",
+      "raw_student_id": "2453876J",
+      "raw_location": "boyd-orr-building"
+    },
+    {
+      "id": "v_sj3",
+      "student_id": "2453876J",
+      "building_id": "library",
+      "start": 1023,
+      "end": 1060,
+      "raw_time": "1703-1740",
+      "raw_student_id": "2453876J",
+      "raw_location": "library"
+    },
+    {
+      "id": "v_sj4",
+      "student_id": "2453876J",
+      "building_id": "the-hive",
+      "start": 1351,
+      "end": 1420,
+      "raw_time": "2231-2340",
+      "raw_student_id": "2453876J",
+      "raw_location": "the-hive"
+    },
+    {
+      "id": "v_ob_park",
+      "student_id": "2456431B",
+      "building_id": "kelvingrove-park",
+      "start": 475,
+      "end": 500,
+      "raw_time": "0755-0820",
+      "raw_student_id": "2456431B",
+      "raw_location": "kelvingrove-park"
+    },
+    {
+      "id": "v_ap_bo",
+      "student_id": "2774868P",
+      "building_id": "boyd-orr-building",
+      "start": 600,
+      "end": 650,
+      "raw_time": "1000-1050",
+      "raw_student_id": "2774868P",
+      "raw_location": "boyd-orr-building"
+    },
+    {
+      "id": "v_am_lib",
+      "student_id": "2786843M",
+      "building_id": "library",
+      "start": 1023,
+      "end": 1050,
+      "raw_time": "1703-1730",
+      "raw_student_id": "2786843M",
+      "raw_location": "library"
+    },
+    {
+      "id": "v_ep_lib",
+      "student_id": "2546112P",
+      "building_id": "library",
+      "start": 1023,
+      "end": 1055,
+      "raw_time": "1703-1735",
+      "raw_student_id": "2546112P",
+      "raw_location": "library"
+    },
+    {
+      "id": "v_jc_hive",
+      "student_id": "2712324G",
+      "building_id": "the-hive",
+      "start": 1351,
+      "end": 1400,
+      "raw_time": "2231-2320",
+      "raw_student_id": "2712324G",
+      "raw_location": "the-hive"
+    },
+    {
+      "id": "v_sw_hive2",
+      "student_id": "2813225B",
+      "building_id": "the-hive",
+      "start": 1351,
+      "end": 1420,
+      "raw_time": "2231-2340",
+      "raw_student_id": "2813225B",
+      "raw_location": "the-hive"
+    },
+    {
+      "id": "v_cl1",
+      "student_id": "2000001A",
+      "building_id": "physics",
+      "start": 540,
+      "end": 600,
+      "raw_time": "0900-1000",
+      "raw_student_id": "2000001A",
+      "raw_location": "physics"
+    },
+    {
+      "id": "v_cl2",
+      "student_id": "2000002B",
+      "building_id": "maths",
+      "start": 540,
+      "end": 660,
+      "raw_time": "0900-1100",
+      "raw_student_id": "2000002B",
+      "raw_location": "maths"
+    }
+  ],
+  "statements": [
+    {
+      "student_id": "2786843M",
+      "raw_student_id": "2786843M",
+      "name": "Abdul Murphy",
+      "text": "I was at my lecture then later near the Boyd Orr.",
+      "claims": []
+    },
+    {
+      "student_id": "2813225B",
+      "raw_student_id": "2813225b",
+      "name": "Stuart Wands",
+      "text": "Went to The Hive after Computing.",
+      "claims": []
+    },
+    {
+      "student_id": "2453876J",
+      "raw_student_id": "2453876J",
+      "name": "Scott Johnston",
+      "text": "Normal day: park, lecture, library, then Hive.",
+      "claims": []
+    }
+  ],
+  "flags": [
+    {
+      "id": "f_ob1",
+      "student_id": "2456431B",
+      "rule": "impossible_overlap",
+      "severity": 3,
+      "title": "In two places at once",
+      "detail": "Boyd Orr and Library overlap 10:30\u201311:00.",
+      "visit_ids": [
+        "v_ob1",
+        "v_ob2"
+      ],
+      "building_id": "library",
+      "time": 630,
+      "statement_span": null
+    },
+    {
+      "id": "f_ob2",
+      "student_id": "2456431B",
+      "rule": "id_mismatch",
+      "severity": 2,
+      "title": "Wrong ID in statement",
+      "detail": "Statement used ID 2656431B.",
+      "visit_ids": [],
+      "building_id": null,
+      "time": null,
+      "statement_span": null
+    },
+    {
+      "id": "f_ap1",
+      "student_id": "2774868P",
+      "rule": "missing_lecture",
+      "severity": 3,
+      "title": "Skipped Engineering lecture",
+      "detail": "Sat Computing lecture instead of Engineering.",
+      "visit_ids": [
+        "v_ap1"
+      ],
+      "building_id": "boyd-orr-building",
+      "time": 600,
+      "statement_span": null
+    },
+    {
+      "id": "f_ap2",
+      "student_id": "2774868P",
+      "rule": "multiple_lectures",
+      "severity": 2,
+      "title": "Wrong lecture building",
+      "detail": "Attended Computing Science slot.",
+      "visit_ids": [
+        "v_ap1"
+      ],
+      "building_id": "boyd-orr-building",
+      "time": 600,
+      "statement_span": null
+    },
+    {
+      "id": "f_am1",
+      "student_id": "2786843M",
+      "rule": "out_of_hours",
+      "severity": 3,
+      "title": "After hours in Boyd Orr",
+      "detail": "Boyd Orr at 22:08 after 21:00 close.",
+      "visit_ids": [
+        "v_am2"
+      ],
+      "building_id": "boyd-orr-building",
+      "time": 1328,
+      "statement_span": null
+    },
+    {
+      "id": "f_ep1",
+      "student_id": "2546112P",
+      "rule": "subject_without_lecture",
+      "severity": 1,
+      "title": "Pharmacy has no lecture",
+      "detail": "No campus lecture for Pharmacy.",
+      "visit_ids": [],
+      "building_id": null,
+      "time": null,
+      "statement_span": null
+    },
+    {
+      "id": "f_ep2",
+      "student_id": "2546112P",
+      "rule": "false_society_claim",
+      "severity": 2,
+      "title": "False society claim",
+      "detail": "Claimed a society not on profile.",
+      "visit_ids": [],
+      "building_id": null,
+      "time": null,
+      "statement_span": null
+    },
+    {
+      "id": "f_jc1",
+      "student_id": "2712324G",
+      "rule": "id_mismatch",
+      "severity": 2,
+      "title": "Logs under fake ID",
+      "detail": "Log ID 2912324G \u2260 2712324G.",
+      "visit_ids": [
+        "v_jc1"
+      ],
+      "building_id": "chemistry",
+      "time": 600,
+      "statement_span": null
+    },
+    {
+      "id": "f_jc2",
+      "student_id": "2712324G",
+      "rule": "left_lecture_early",
+      "severity": 2,
+      "title": "Left lecture early",
+      "detail": "Left Chemistry lecture at 10:50.",
+      "visit_ids": [
+        "v_jc1"
+      ],
+      "building_id": "chemistry",
+      "time": 650,
+      "statement_span": null
+    },
+    {
+      "id": "f_sw1",
+      "student_id": "2813225B",
+      "rule": "age_restricted_venue",
+      "severity": 3,
+      "title": "Under 18 at The Hive",
+      "detail": "Age 17 entered The Hive (18+).",
+      "visit_ids": [
+        "v_sw2"
+      ],
+      "building_id": "the-hive",
+      "time": 1328,
+      "statement_span": null
+    },
+    {
+      "id": "f_sw2",
+      "student_id": "2813225B",
+      "rule": "id_format",
+      "severity": 1,
+      "title": "Lowercase ID",
+      "detail": "ID typed lowercase in logs.",
+      "visit_ids": [
+        "v_sw1"
+      ],
+      "building_id": null,
+      "time": null,
+      "statement_span": null
+    }
+  ],
+  "meetings": [
+    {
+      "id": "m1",
+      "a": "2453876J",
+      "b": "2456431B",
+      "building_id": "kelvingrove-park",
+      "start": 475,
+      "end": 500,
+      "minutes": 25
+    },
+    {
+      "id": "m2",
+      "a": "2453876J",
+      "b": "2774868P",
+      "building_id": "boyd-orr-building",
+      "start": 600,
+      "end": 650,
+      "minutes": 50
+    },
+    {
+      "id": "m3",
+      "a": "2453876J",
+      "b": "2786843M",
+      "building_id": "library",
+      "start": 1023,
+      "end": 1050,
+      "minutes": 27
+    },
+    {
+      "id": "m4",
+      "a": "2453876J",
+      "b": "2546112P",
+      "building_id": "library",
+      "start": 1023,
+      "end": 1055,
+      "minutes": 32
+    },
+    {
+      "id": "m5",
+      "a": "2453876J",
+      "b": "2712324G",
+      "building_id": "the-hive",
+      "start": 1351,
+      "end": 1400,
+      "minutes": 49
+    },
+    {
+      "id": "m6",
+      "a": "2453876J",
+      "b": "2813225B",
+      "building_id": "the-hive",
+      "start": 1351,
+      "end": 1420,
+      "minutes": 69
+    },
+    {
+      "id": "m7",
+      "a": "2456431B",
+      "b": "2774868P",
+      "building_id": "boyd-orr-building",
+      "start": 600,
+      "end": 650,
+      "minutes": 50
+    },
+    {
+      "id": "m8",
+      "a": "2786843M",
+      "b": "2546112P",
+      "building_id": "library",
+      "start": 1023,
+      "end": 1050,
+      "minutes": 27
+    },
+    {
+      "id": "m9",
+      "a": "2712324G",
+      "b": "2813225B",
+      "building_id": "the-hive",
+      "start": 1351,
+      "end": 1400,
+      "minutes": 49
+    }
+  ],
+  "suspects": [
+    {
+      "student_id": "2456431B",
+      "score": 5,
+      "flag_count": 2,
+      "rank": 1,
+      "verdict": "conspirator",
+      "conspirators_met": [
+        "2774868P",
+        "2786843M",
+        "2546112P"
+      ],
+      "meeting_ids_with_conspirators": [
+        "m1",
+        "m7"
+      ]
+    },
+    {
+      "student_id": "2774868P",
+      "score": 5,
+      "flag_count": 2,
+      "rank": 2,
+      "verdict": "conspirator",
+      "conspirators_met": [
+        "2456431B",
+        "2786843M",
+        "2546112P"
+      ],
+      "meeting_ids_with_conspirators": [
+        "m2",
+        "m7"
+      ]
+    },
+    {
+      "student_id": "2786843M",
+      "score": 3,
+      "flag_count": 1,
+      "rank": 3,
+      "verdict": "conspirator",
+      "conspirators_met": [
+        "2456431B",
+        "2774868P",
+        "2546112P"
+      ],
+      "meeting_ids_with_conspirators": [
+        "m3",
+        "m8"
+      ]
+    },
+    {
+      "student_id": "2546112P",
+      "score": 3,
+      "flag_count": 2,
+      "rank": 4,
+      "verdict": "conspirator",
+      "conspirators_met": [
+        "2456431B",
+        "2774868P",
+        "2786843M"
+      ],
+      "meeting_ids_with_conspirators": [
+        "m4",
+        "m8"
+      ]
+    },
+    {
+      "student_id": "2712324G",
+      "score": 4,
+      "flag_count": 2,
+      "rank": 5,
+      "verdict": "conspirator",
+      "conspirators_met": [
+        "2456431B",
+        "2774868P",
+        "2786843M"
+      ],
+      "meeting_ids_with_conspirators": [
+        "m5",
+        "m9"
+      ]
+    },
+    {
+      "student_id": "2813225B",
+      "score": 4,
+      "flag_count": 2,
+      "rank": 6,
+      "verdict": "conspirator",
+      "conspirators_met": [
+        "2456431B",
+        "2774868P",
+        "2786843M"
+      ],
+      "meeting_ids_with_conspirators": [
+        "m6",
+        "m9"
+      ]
+    },
+    {
+      "student_id": "2453876J",
+      "score": 0,
+      "flag_count": 0,
+      "rank": 0,
+      "verdict": "mastermind",
+      "conspirators_met": [
+        "2456431B",
+        "2774868P",
+        "2786843M",
+        "2546112P",
+        "2712324G",
+        "2813225B"
+      ],
+      "meeting_ids_with_conspirators": [
+        "m1",
+        "m2",
+        "m3",
+        "m4",
+        "m5",
+        "m6"
+      ]
+    },
+    {
+      "student_id": "2000001A",
+      "score": 0,
+      "flag_count": 0,
+      "rank": 99,
+      "verdict": "clear",
+      "conspirators_met": [],
+      "meeting_ids_with_conspirators": []
+    },
+    {
+      "student_id": "2000002B",
+      "score": 0,
+      "flag_count": 0,
+      "rank": 99,
+      "verdict": "clear",
+      "conspirators_met": [],
+      "meeting_ids_with_conspirators": []
+    }
+  ],
+  "data_quality": [
+    {
+      "file": "security_logs.csv",
+      "row": 12,
+      "column": "Student ID",
+      "issue": "lowercase",
+      "original": "2813225b",
+      "fixed": "2813225B"
+    }
+  ],
+  "oddities": [
+    {
+      "id": "o1",
+      "title": "Physics slot mismatch",
+      "detail": "Description says 0900\u20131100; logs use 0900\u20131000.",
+      "student_ids": [],
+      "building_ids": [
+        "physics"
+      ]
+    }
+  ]
+}

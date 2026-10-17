@@ -37,8 +37,20 @@ AI agents: also read [`AGENTS.md`](AGENTS.md).
 │   ├── design_reference.png  ← UI look (corkboard detective game)
 │   └── challenge-brief.pdf   ← official organiser brief
 ├── prompts/                  ← paste these into your AI agent
-└── (backend/ + frontend/)    ← created by the team during the hack (see prompts)
+├── frontend/                 ← Vite app (P5 viz: /map /timeline /network)
+├── Pawish/                   ← P5 worklog (prompt + step notes)
+└── backend/                  ← created by P3 during the hack
 ```
+
+### Run the viz (P5 local)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open http://localhost:5173/ — Map, Timeline, Network.
 
 ## Data (summary)
 
