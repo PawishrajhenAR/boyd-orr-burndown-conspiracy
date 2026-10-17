@@ -189,9 +189,10 @@ export default function FlagHeatmap() {
           fontSize: 13,
           color: TOKENS.accent,
           marginBottom: 4,
+          letterSpacing: '0.04em',
         }}
       >
-        Flag heatmap
+        Where the day burned hot
       </div>
       <svg ref={svgRef} style={{ display: 'block', width: '100%' }} />
       <p style={{ margin: '4px 0 0', fontSize: 11, color: TOKENS.muted }}>

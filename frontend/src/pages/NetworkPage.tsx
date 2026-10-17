@@ -5,7 +5,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import * as d3 from 'd3'
 import TimeSlider from '../components/viz/TimeSlider'
+import StoryChapter from '../components/viz/StoryChapter'
+import ComicPageShell from '../components/viz/ComicPageShell'
+import { playComicSfx } from '../components/viz/comicSfx'
+import { fireComicBurst } from '../components/viz/ComicBurst'
 import { hhmm, NETWORK, observeResize, verdictColor } from '../components/viz/util'
+import '../components/viz/viz-story.css'
 import { flagsFor, meetingsUntil, suspectFor, useCaseStore } from '../store/useCaseStore'
 import type { Case, Meeting, Student, Suspect, Verdict } from '../types/case'
 
@@ -384,6 +389,9 @@ export default function NetworkPage() {
       setHint('No mastermind verdict in case data yet.')
       return
     }
+    playComicSfx('reveal')
+    fireComicBurst('REVEAL', { x: 48, y: 36 })
+    window.setTimeout(() => fireComicBurst('WHAM', { x: 58, y: 48 }), 280)
     setRevealed(true)
     // Show every meeting so gold edges to all conspirators are visible.
     setReplayTime(c.meta.time_max)
@@ -667,7 +675,11 @@ export default function NetworkPage() {
   const mmTotal = conspirators.length || 6
 
   return (
-    <div className="page network-page" style={{ background: NETWORK.bg, margin: 0, borderRadius: 0 }}>
+    <ComicPageShell
+      className="network-page"
+      style={{ background: NETWORK.bg, margin: 0, borderRadius: 0 }}
+      enterSfx="slam"
+    >
       <style>{`
         .network-page { color: #c8d0e0; gap: 8px; }
         .network-page .page-title { color: #ffd166; }
@@ -728,48 +740,47 @@ export default function NetworkPage() {
         .btn.net.gold { border-color: ${NETWORK.mastermind}; color: ${NETWORK.mastermind}; }
       `}</style>
 
-      <h2 className="page-title">
-        Network
-        <small>Who met whom</small>
-      </h2>
-      <p className="caption">
-        How to read: nodes are students (violet = buildings when “show places” is on). Edges appear when a meeting
-        has started by the replay time and lasts at least the min-minutes setting. Red = conspirators, gold = mastermind
-        (after Reveal or in judge mode). Default filter shows only flagged people and their contacts.
-      </p>
-
-      <div className="net-toolbar">
-        <label>
-          Min minutes
-          <input
-            type="range"
-            min={1}
-            max={60}
-            value={minMinutes}
-            onChange={(e) => setMinMinutes(Number(e.target.value))}
-          />
-          <span style={{ fontFamily: 'var(--font-mono)', color: NETWORK.teal }}>{minMinutes}</span>
-        </label>
-        <label>
-          <input type="checkbox" checked={showPlaces} onChange={(e) => setShowPlaces(e.target.checked)} />
-          Show places
-        </label>
-        <label>
-          <input type="checkbox" checked={flaggedOnly} onChange={(e) => setFlaggedOnly(e.target.checked)} />
-          Flagged + contacts only
-        </label>
-        <button type="button" className="btn net gold" onClick={revealMastermind}>
-          Reveal mastermind
-        </button>
-        {revealed && mastermind && (
-          <span style={{ color: NETWORK.mastermind, fontSize: 13 }}>
-            Clean record · met {mmMet}/{mmTotal}
-          </span>
-        )}
-      </div>
+      <StoryChapter
+        chapter="network"
+        variant="night"
+        subtitle="Link analysis · the invisible web"
+        toolbar={
+          <div className="net-toolbar" style={{ margin: 0 }}>
+            <label>
+              Min minutes
+              <input
+                type="range"
+                min={1}
+                max={60}
+                value={minMinutes}
+                onChange={(e) => setMinMinutes(Number(e.target.value))}
+              />
+              <span style={{ fontFamily: 'var(--font-mono)', color: NETWORK.teal }}>{minMinutes}</span>
+            </label>
+            <label>
+              <input type="checkbox" checked={showPlaces} onChange={(e) => setShowPlaces(e.target.checked)} />
+              Show places
+            </label>
+            <label>
+              <input type="checkbox" checked={flaggedOnly} onChange={(e) => setFlaggedOnly(e.target.checked)} />
+              Flagged + contacts only
+            </label>
+            <button type="button" className="btn net gold" onClick={revealMastermind}>
+              Reveal mastermind
+            </button>
+            {revealed && mastermind && (
+              <span style={{ color: NETWORK.mastermind, fontSize: 13 }}>
+                Clean record · met {mmMet}/{mmTotal}
+              </span>
+            )}
+          </div>
+        }
+      />
 
       <div className="network-layout">
-        <div className="network-stage" ref={wrapRef}>
+        <div className="network-stage story-stage" ref={wrapRef}>
+          <span className="comic-web-corner comic-web-corner--tl" />
+          <span className="comic-web-corner comic-web-corner--tr" />
           <div className="net-controls-tl">
             <button
               type="button"
@@ -818,7 +829,7 @@ export default function NetworkPage() {
           {edgeTip && <div className="net-edge-tip">{edgeTip}</div>}
           {revealed && mastermind && (
             <div className="net-reveal-caption">
-              Clean record · met {mmMet}/{mmTotal}
+              The clean record · met every conspirator · {mmMet}/{mmTotal}
             </div>
           )}
         </div>
@@ -826,6 +837,6 @@ export default function NetworkPage() {
       </div>
 
       <TimeSlider />
-    </div>
+    </ComicPageShell>
   )
 }

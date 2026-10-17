@@ -1,7 +1,7 @@
 import type { Case } from "../types/case";
 
 const API_BASE = "/api";
-const REQUEST_TIMEOUT_MS = 2000;
+const REQUEST_TIMEOUT_MS = 8000;
 
 /**
  * Fetch JSON with a timeout.

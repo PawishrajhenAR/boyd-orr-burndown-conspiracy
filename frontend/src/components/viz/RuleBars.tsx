@@ -64,7 +64,7 @@ export default function RuleBars() {
       const left = 150
       const right = 36
       const barMax = Math.max(40, width - left - right)
-      const height = 28 + rows.length * rowH
+      const height = Math.max(56, 28 + Math.max(rows.length, 1) * rowH)
 
       const root = select(svg)
       root.selectAll('*').remove()
@@ -137,12 +137,12 @@ export default function RuleBars() {
           marginBottom: 4,
         }}
       >
-        Flags by rule
+        Rules that cracked the cover story
       </div>
       <svg ref={svgRef} style={{ display: 'block', width: '100%' }} />
       <p style={{ margin: '4px 0 0', fontSize: 11, color: TOKENS.muted }}>
-        Bar length = flag count. Colour = average severity (red high, orange
-        medium, amber low). Click a bar to set the hint to that rule.
+        Longer bar = more flags. Colour = average severity. Click a rule to pin
+        it as the investigation hint.
       </p>
     </div>
   )

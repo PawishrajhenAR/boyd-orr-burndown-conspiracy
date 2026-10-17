@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import TimeSlider from '../components/viz/TimeSlider'
+import StoryChapter from '../components/viz/StoryChapter'
+import ComicPageShell from '../components/viz/ComicPageShell'
+import { playComicSfx } from '../components/viz/comicSfx'
+import { fireComicBurst } from '../components/viz/ComicBurst'
 import { hhmm, observeResize } from '../components/viz/util'
 import { useCaseStore } from '../store/useCaseStore'
 import type { Building, Case, Meeting, Student, Visit } from '../types/case'
+import '../components/viz/viz-story.css'
 
 type FilterMode = 'all' | 'flagged' | 'contacts'
 
@@ -434,50 +439,60 @@ export default function TimelinePage() {
   }
 
   return (
-    <div className="page">
-      <h2 className="page-title">
-        Timeline — the day
-        <small>
-          {hhmm(c.meta.time_min)}–{hhmm(c.meta.time_max)}
-        </small>
-      </h2>
-      <p className="caption">
-        How to read: each row is a building; each line is a student moving through the day.
-        Hatched bands = closed hours. Thick segments = lecture visits. Red × = flags. Gold rings
-        = meetings with the selected student. Drag across the chart to zoom time; double-click to
-        reset.
-      </p>
+    <ComicPageShell enterSfx="thwip">
+      <StoryChapter
+        chapter="timeline"
+        subtitle={`${hhmm(c.meta.time_min)} → ${hhmm(c.meta.time_max)} · storyline`}
+        toolbar={
+          <>
+            {(
+              [
+                ['all', 'All'],
+                ['flagged', 'Flagged only'],
+                ['contacts', 'Selected + contacts'],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                className={`btn${filter === id ? ' accent' : ''}`}
+                onClick={() => {
+                  playComicSfx('zap')
+                  fireComicBurst(id === 'flagged' ? 'CLUE' : 'ZAP')
+                  setFilter(id)
+                }}
+              >
+                {label}
+              </button>
+            ))}
+            {brushDomain && (
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  playComicSfx('whoosh')
+                  setBrushDomain(null)
+                }}
+              >
+                Reset zoom
+              </button>
+            )}
+          </>
+        }
+      />
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {(
-          [
-            ['all', 'All'],
-            ['flagged', 'Flagged only'],
-            ['contacts', 'Selected + contacts'],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            className={`btn${filter === id ? ' accent' : ''}`}
-            onClick={() => setFilter(id)}
-          >
-            {label}
-          </button>
-        ))}
-        {brushDomain && (
-          <button type="button" className="btn" onClick={() => setBrushDomain(null)}>
-            Reset zoom
-          </button>
-        )}
-      </div>
-
-      <div className="viz-stage panel" ref={wrapRef} style={{ padding: 0, position: 'relative' }}>
+      <div
+        className="viz-stage panel story-stage"
+        ref={wrapRef}
+        style={{ padding: 0, position: 'relative', minHeight: 420 }}
+      >
+        <span className="comic-web-corner comic-web-corner--tl" />
+        <span className="comic-web-corner comic-web-corner--br" />
         <svg ref={svgRef} role="img" aria-label="Day storyline timeline" />
         <div ref={tooltipRef} className="tooltip" style={{ display: 'none' }} />
       </div>
 
       <TimeSlider />
-    </div>
+    </ComicPageShell>
   )
 }

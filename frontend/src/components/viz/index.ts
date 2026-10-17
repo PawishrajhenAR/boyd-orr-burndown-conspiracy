@@ -6,6 +6,11 @@ export { default as FlagHeatmap } from './FlagHeatmap'
 export { default as RuleBars } from './RuleBars'
 export { default as StorylineMini } from './StorylineMini'
 export { default as NetworkMini } from './NetworkMini'
+export { default as StoryChapter } from './StoryChapter'
+export { default as ComicPageShell } from './ComicPageShell'
+export { default as ComicBurstLayer, fireComicBurst } from './ComicBurst'
+export { playComicSfx } from './comicSfx'
+export { storyBeatAt, chapterMeta } from './storyBeats'
 
 export {
   hhmm,

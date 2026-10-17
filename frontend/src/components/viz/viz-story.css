@@ -1,0 +1,300 @@
+/* P5 storytelling chrome — cork-noir case file (matches design_reference) */
+
+@keyframes story-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes story-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(214, 40, 40, 0);
+  }
+  50% {
+    box-shadow: 0 0 18px 2px rgba(214, 40, 40, 0.35);
+  }
+}
+
+@keyframes story-scan {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.story-chapter {
+  animation: story-rise 0.55s ease-out both;
+  margin-bottom: 10px;
+}
+
+.story-chapter__top {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.story-chapter__badge {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  border: 2px solid var(--accent);
+  background:
+    linear-gradient(145deg, rgba(255, 179, 71, 0.12), transparent 60%),
+    var(--panel-inner);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.story-chapter__roman {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.story-chapter__label {
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  color: var(--muted-dark);
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.story-chapter__eyebrow {
+  margin: 0 0 4px;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-dark);
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.story-chapter__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 2.6vw, 2.15rem);
+  color: var(--accent);
+  line-height: 1.05;
+}
+
+.story-chapter__title small {
+  display: block;
+  margin-top: 4px;
+  font: 400 0.85rem var(--font-body);
+  color: var(--muted-dark);
+}
+
+.story-beat {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  background:
+    linear-gradient(90deg, rgba(255, 179, 71, 0.08), transparent 40%),
+    var(--panel);
+  margin-bottom: 8px;
+  transition:
+    border-color 0.35s ease,
+    background 0.35s ease;
+}
+
+.story-beat--tense {
+  border-color: #d35400aa;
+  background:
+    linear-gradient(90deg, rgba(211, 84, 0, 0.14), transparent 45%),
+    var(--panel);
+}
+
+.story-beat--hot {
+  border-color: #d62828aa;
+  background:
+    linear-gradient(90deg, rgba(214, 40, 40, 0.16), transparent 50%),
+    var(--panel);
+  animation: story-pulse 2.4s ease-in-out infinite;
+}
+
+.story-beat__phase {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.story-beat--hot .story-beat__phase {
+  color: #ff8578;
+}
+
+.story-beat__line {
+  font-size: 0.92rem;
+  color: var(--muted);
+  line-height: 1.35;
+  flex: 1;
+  min-width: 200px;
+}
+
+.story-chapter__how {
+  margin: 0 0 10px;
+  font-size: 0.8rem;
+  color: var(--muted-dark);
+  max-width: 72ch;
+  line-height: 1.45;
+}
+
+.story-chapter__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+/* Night network variant */
+.story-chapter--night .story-chapter__title {
+  color: #ffd166;
+}
+.story-chapter--night .story-chapter__badge {
+  border-color: #ffd166;
+  background: #12182a;
+}
+.story-chapter--night .story-chapter__roman {
+  color: #ffd166;
+}
+.story-chapter--night .story-beat {
+  background: #12182a;
+  border-color: #2a3355;
+  color: #c8d0e0;
+}
+.story-chapter--night .story-beat__line {
+  color: #c8d0e0;
+}
+.story-chapter--night .story-chapter__how {
+  color: #8b95b0;
+}
+.story-chapter--night .story-chapter__eyebrow {
+  color: #8b95b0;
+}
+
+/* Stage frames */
+.story-stage {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 2px solid var(--panel-border);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    inset 0 0 80px rgba(0, 0, 0, 0.25);
+  animation: story-rise 0.7s ease-out 0.08s both;
+}
+
+.story-stage::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+
+.story-dossier {
+  background:
+    linear-gradient(180deg, rgba(255, 179, 71, 0.06), transparent 28%),
+    var(--panel);
+  border: 2px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 14px 16px;
+  overflow: auto;
+  animation: story-rise 0.65s ease-out 0.12s both;
+}
+
+.story-dossier__stamp {
+  display: inline-block;
+  border: 2px solid var(--pin);
+  color: var(--pin);
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  transform: rotate(-6deg);
+  margin-bottom: 10px;
+}
+
+.story-dossier__stamp--clear {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+/* Cinematic time slider */
+.time-slider.story-replay {
+  background:
+    linear-gradient(180deg, rgba(255, 179, 71, 0.05), transparent 40%),
+    var(--panel);
+}
+
+.time-slider.story-replay.is-playing {
+  border-top-color: var(--accent);
+}
+
+.time-slider__story {
+  font-size: 0.72rem;
+  color: var(--muted-dark);
+  text-align: center;
+  margin: 0;
+  min-height: 1.1em;
+  letter-spacing: 0.02em;
+}
+
+.time-slider__story strong {
+  color: var(--accent);
+  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  margin-right: 8px;
+}
+
+.time-slider__play {
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease;
+}
+
+.time-slider__play:hover {
+  transform: scale(1.06);
+}
+
+.time-slider__play.is-on {
+  background: var(--accent) !important;
+  color: #2a1f17 !important;
+  box-shadow: 0 0 20px rgba(255, 179, 71, 0.45);
+}
+
+@media (max-width: 650px) {
+  .story-chapter__badge {
+    width: 52px;
+    height: 52px;
+  }
+  .story-beat {
+    flex-direction: column;
+    gap: 4px;
+  }
+}

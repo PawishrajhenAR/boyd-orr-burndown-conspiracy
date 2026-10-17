@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { select } from 'd3'
 import { useCaseStore } from '../../store/useCaseStore'
+import { storyBeatAt } from './storyBeats'
+import { playComicSfx } from './comicSfx'
+import ComicBurstLayer, { fireComicBurst } from './ComicBurst'
 import { hhmm, observeResize, timeScale, useVisibleFlags, TOKENS } from './util'
+import './viz-story.css'
+import './viz-comic.css'
 
-const BAR_H = 88
+const BAR_H = 96
 const TRACK_H = 10
 const PAD_X = 72
 
@@ -13,6 +18,8 @@ export default function TimeSlider() {
   const setReplayTime = useCaseStore((s) => s.setReplayTime)
   const isPlaying = useCaseStore((s) => s.isPlaying)
   const togglePlay = useCaseStore((s) => s.togglePlay)
+  const judgeMode = useCaseStore((s) => s.judgeMode)
+  const revealedFlagIds = useCaseStore((s) => s.revealedFlagIds)
   const flags = useVisibleFlags()
   const trackRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
@@ -25,22 +32,41 @@ export default function TimeSlider() {
     [flags],
   )
 
-  // Advance 5 min every 100 ms while playing
+  const beat = useMemo(
+    () => storyBeatAt(caseData, replayTime, { judgeMode, revealedFlagIds }),
+    [caseData, replayTime, judgeMode, revealedFlagIds],
+  )
+
+  const lastHotRef = useRef('')
+
   useEffect(() => {
     if (!isPlaying || !caseData) return
+    let ticks = 0
     const id = window.setInterval(() => {
       const { replayTime: t, setReplayTime: setT, togglePlay: toggle } =
         useCaseStore.getState()
       const next = t + 5
+      ticks += 1
+      if (ticks % 10 === 0) playComicSfx('tick')
       if (next >= caseData.meta.time_max) {
         setT(caseData.meta.time_max)
         if (useCaseStore.getState().isPlaying) toggle()
+        playComicSfx('bam')
+        fireComicBurst('BOOM')
       } else {
         setT(next)
       }
     }, 100)
     return () => window.clearInterval(id)
   }, [isPlaying, caseData])
+
+  useEffect(() => {
+    if (beat.urgency !== 'hot') return
+    if (lastHotRef.current === beat.line) return
+    lastHotRef.current = beat.line
+    playComicSfx('flag')
+    fireComicBurst('CLUE', { x: 70, y: 82 })
+  }, [beat.urgency, beat.line])
 
   useEffect(() => {
     const el = trackRef.current
@@ -52,10 +78,21 @@ export default function TimeSlider() {
       const trackW = Math.max(40, w - PAD_X * 2)
       const x = timeScale(trackW, tMin, tMax)
       const midY = 36
+      const tClamped = Math.min(tMax, Math.max(tMin, replayTime))
+      const thumbX = x(tClamped)
 
       const root = select(svg)
       root.selectAll('*').remove()
       root.attr('width', w).attr('height', 64)
+
+      const defs = root.append('defs')
+      const grad = defs
+        .append('linearGradient')
+        .attr('id', 'replay-track')
+        .attr('x1', '0%')
+        .attr('x2', '100%')
+      grad.append('stop').attr('offset', '0%').attr('stop-color', '#c07828')
+      grad.append('stop').attr('offset', '100%').attr('stop-color', TOKENS.accent)
 
       const g = root.append('g').attr('transform', `translate(${PAD_X},0)`)
 
@@ -92,18 +129,37 @@ export default function TimeSlider() {
           .attr('stroke', TOKENS.pin)
           .attr('stroke-width', 2)
           .attr('stroke-linecap', 'round')
+          .attr('opacity', 0.9)
       }
 
+      // Unplayed track
       g.append('rect')
         .attr('x', 0)
         .attr('y', midY - TRACK_H / 2)
         .attr('width', trackW)
         .attr('height', TRACK_H)
         .attr('rx', TRACK_H / 2)
-        .attr('fill', TOKENS.accent)
-        .attr('opacity', 0.85)
+        .attr('fill', '#3b2c20')
+        .attr('opacity', 0.95)
 
-      const thumbX = x(Math.min(tMax, Math.max(tMin, replayTime)))
+      // Elapsed fill
+      g.append('rect')
+        .attr('x', 0)
+        .attr('y', midY - TRACK_H / 2)
+        .attr('width', Math.max(0, thumbX))
+        .attr('height', TRACK_H)
+        .attr('rx', TRACK_H / 2)
+        .attr('fill', 'url(#replay-track)')
+        .attr('opacity', 0.95)
+
+      // Thumb glow
+      g.append('circle')
+        .attr('cx', thumbX)
+        .attr('cy', midY)
+        .attr('r', 16)
+        .attr('fill', TOKENS.accent)
+        .attr('opacity', isPlaying ? 0.28 : 0.12)
+
       g.append('circle')
         .attr('cx', thumbX)
         .attr('cy', midY)
@@ -126,9 +182,9 @@ export default function TimeSlider() {
 
     draw()
     return observeResize(el, draw)
-  }, [tMin, tMax, replayTime, flagTimes])
+  }, [tMin, tMax, replayTime, flagTimes, isPlaying])
 
-  const onPointer = (clientX: number) => {
+  const onPointer = (clientX: number, withClickSound = false) => {
     const el = trackRef.current
     if (!el) return
     const rect = el.getBoundingClientRect()
@@ -137,20 +193,20 @@ export default function TimeSlider() {
     const x = timeScale(trackW, tMin, tMax)
     const t = Math.round(x.invert(Math.min(trackW, Math.max(0, local))))
     setReplayTime(Math.min(tMax, Math.max(tMin, t)))
+    if (withClickSound) playComicSfx('thwip')
   }
 
   return (
     <div
-      className="time-slider"
+      className={`time-slider story-replay${isPlaying ? ' is-playing' : ''}`}
       style={{
         height: BAR_H,
         flexShrink: 0,
         position: 'sticky',
         bottom: 0,
         zIndex: 30,
-        background: TOKENS.panel,
         borderTop: `2px solid ${TOKENS.panelBorder}`,
-        boxShadow: '0 -8px 24px rgba(0,0,0,0.35)',
+        boxShadow: '0 -10px 28px rgba(0,0,0,0.4)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
@@ -158,6 +214,7 @@ export default function TimeSlider() {
         color: TOKENS.mutedSoft,
       }}
     >
+      <ComicBurstLayer />
       <div
         style={{
           display: 'flex',
@@ -168,11 +225,16 @@ export default function TimeSlider() {
       >
         <button
           type="button"
-          onClick={togglePlay}
+          className={`time-slider__play${isPlaying ? ' is-on' : ''}`}
+          onClick={() => {
+            playComicSfx(isPlaying ? 'zap' : 'play')
+            if (!isPlaying) fireComicBurst('THWIP', { x: 12, y: 88 })
+            togglePlay()
+          }}
           aria-label={isPlaying ? 'Pause' : 'Play'}
           style={{
-            width: 40,
-            height: 40,
+            width: 42,
+            height: 42,
             borderRadius: '50%',
             border: `2px solid ${TOKENS.accent}`,
             background: '#3b2c20',
@@ -189,7 +251,7 @@ export default function TimeSlider() {
             fontFamily: 'Fredoka, sans-serif',
             fontWeight: 600,
             fontSize: 13,
-            letterSpacing: '0.08em',
+            letterSpacing: '0.1em',
             color: TOKENS.accent,
             whiteSpace: 'nowrap',
           }}
@@ -201,7 +263,7 @@ export default function TimeSlider() {
           style={{ flex: 1, position: 'relative', minWidth: 0 }}
           onPointerDown={(e) => {
             ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
-            onPointer(e.clientX)
+            onPointer(e.clientX, true)
           }}
           onPointerMove={(e) => {
             if (e.buttons === 1) onPointer(e.clientX)
@@ -210,16 +272,9 @@ export default function TimeSlider() {
           <svg ref={svgRef} style={{ display: 'block', width: '100%' }} />
         </div>
       </div>
-      <p
-        style={{
-          margin: 0,
-          fontSize: 11,
-          color: TOKENS.muted,
-          textAlign: 'center',
-        }}
-      >
-        Drag the thumb or press play to scrub the day. Red ticks mark when
-        irregularities were flagged.
+      <p className="time-slider__story">
+        <strong>{beat.phase}</strong>
+        {beat.line}
       </p>
     </div>
   )

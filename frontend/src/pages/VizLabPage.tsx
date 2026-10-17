@@ -1,16 +1,27 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useCaseStore } from '../store/useCaseStore'
 import Clock24 from '../components/viz/Clock24'
 import DayTimeline from '../components/viz/DayTimeline'
 import FlagHeatmap from '../components/viz/FlagHeatmap'
 import RuleBars from '../components/viz/RuleBars'
 import TimeSlider from '../components/viz/TimeSlider'
+import StoryChapter from '../components/viz/StoryChapter'
+import ComicPageShell from '../components/viz/ComicPageShell'
+import { playComicSfx } from '../components/viz/comicSfx'
+import { fireComicBurst } from '../components/viz/ComicBurst'
 import { hhmm } from '../components/viz/util'
+import '../components/viz/viz-story.css'
 
 /** Local P5 harness — mounts every chart that P4 will host on game pages. */
 export default function VizLabPage() {
   const c = useCaseStore((s) => s.case)
   const replayTime = useCaseStore((s) => s.replayTime)
+  const setJudgeMode = useCaseStore((s) => s.setJudgeMode)
+
+  // After case load (which resets judgeMode), re-enable so HQ charts show all flags
+  useEffect(() => {
+    if (c) setJudgeMode(true)
+  }, [c, setJudgeMode])
   const flagged = useMemo(() => {
     if (!c) return []
     return c.suspects
@@ -35,43 +46,44 @@ export default function VizLabPage() {
   const student = c.students.find((s) => s.id === studentId)
 
   return (
-    <div className="page">
-      <h2 className="page-title">
-        Viz lab
-        <small>Clock24 · DayTimeline · HQ charts — acceptance harness</small>
-      </h2>
-      <p className="caption">
-        How to read: pick a flagged student. Clock24 must wrap midnight (Stuart @ Hive). DayTimeline must
-        put Abdul’s Boyd Orr visit in the hatched closed zone after 21:00. Heatmap / rule bars feed HQ.
-      </p>
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-        <label style={{ fontSize: 13, color: 'var(--muted-dark)' }}>
-          Student{' '}
-          <select
-            value={studentId}
-            onChange={(e) => setStudentId(e.target.value)}
-            style={{
-              background: 'var(--panel-inner)',
-              color: 'var(--muted)',
-              border: '1px solid var(--panel-border)',
-              borderRadius: 8,
-              padding: '6px 10px',
-            }}
-          >
-            {flagged.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name} ({s.verdict})
-              </option>
-            ))}
-          </select>
-        </label>
-        {student && (
-          <span className="caption">
-            {student.name} · age {student.age} · {student.subject} · replay {hhmm(replayTime)}
-          </span>
-        )}
-      </div>
+    <ComicPageShell enterSfx="thwip">
+      <StoryChapter
+        chapter="lab"
+        subtitle="Clock24 · DayTimeline · HQ charts — acceptance harness"
+        toolbar={
+          <>
+            <label style={{ fontSize: 13, color: 'var(--muted-dark)' }}>
+              Student{' '}
+              <select
+                value={studentId}
+                onChange={(e) => {
+                  playComicSfx('zap')
+                  fireComicBurst('ZAP')
+                  setStudentId(e.target.value)
+                }}
+                style={{
+                  background: 'var(--panel-inner)',
+                  color: 'var(--muted)',
+                  border: '1px solid var(--panel-border)',
+                  borderRadius: 8,
+                  padding: '6px 10px',
+                }}
+              >
+                {flagged.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.verdict})
+                  </option>
+                ))}
+              </select>
+            </label>
+            {student && (
+              <span className="caption">
+                {student.name} · age {student.age} · {student.subject} · replay {hhmm(replayTime)}
+              </span>
+            )}
+          </>
+        }
+      />
 
       <div
         style={{
@@ -123,6 +135,6 @@ export default function VizLabPage() {
       </div>
 
       <TimeSlider />
-    </div>
+    </ComicPageShell>
   )
 }

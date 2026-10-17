@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import type {
   GeoJSONSource,
@@ -9,8 +9,13 @@ import type {
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Feature, FeatureCollection, Polygon } from 'geojson'
 import TimeSlider from '../components/viz/TimeSlider'
+import StoryChapter from '../components/viz/StoryChapter'
+import ComicPageShell from '../components/viz/ComicPageShell'
 import CampusMapFallback from '../components/viz/CampusMapFallback'
+import { playComicSfx } from '../components/viz/comicSfx'
+import { fireComicBurst } from '../components/viz/ComicBurst'
 import { hhmm, verdictColor } from '../components/viz/util'
+import '../components/viz/viz-story.css'
 import {
   buildingById,
   studentById,
@@ -211,7 +216,19 @@ export default function MapPage() {
   const replayTime = useCaseStore((s) => s.replayTime)
   const selectedBuildingId = useCaseStore((s) => s.selectedBuildingId)
   const selectedStudentId = useCaseStore((s) => s.selectedStudentId)
-  const selectBuilding = useCaseStore((s) => s.selectBuilding)
+  const selectBuildingRaw = useCaseStore((s) => s.selectBuilding)
+  const selectBuilding = useCallback(
+    (id: string | null) => {
+      if (id) {
+        playComicSfx('pow')
+        fireComicBurst('POW', { x: 35, y: 40 })
+      } else {
+        playComicSfx('zap')
+      }
+      selectBuildingRaw(id)
+    },
+    [selectBuildingRaw],
+  )
   const selectStudent = useCaseStore((s) => s.selectStudent)
   const judgeMode = useCaseStore((s) => s.judgeMode)
   const revealedFlagIds = useCaseStore((s) => s.revealedFlagIds)
@@ -532,7 +549,7 @@ export default function MapPage() {
   }
 
   return (
-    <div className="page map-3d-page">
+    <ComicPageShell className="map-3d-page" enterSfx="whoosh">
       <style>{`
         .map-3d-page .map-stage {
           flex: 1; min-height: 420px; height: 100%; position: relative;
@@ -579,21 +596,16 @@ export default function MapPage() {
         }
       `}</style>
 
-      <h2 className="page-title">
-        Map — where it happened
-        <small>{c.meta.day_label} · Gilmorehill campus</small>
-      </h2>
-      <p className="caption">
-        How to read: Esri satellite of Gilmorehill (University of Glasgow).
-        {mapError
-          ? ' Isometric blocks mark case buildings (WebGL 3D unavailable here).'
-          : ' Pitch/orbit the 3D camera — extruded blocks are case buildings.'}{' '}
-        Taller = more visits; red = flag near now; purple = 18+ venue. Dots = people inside at replay
-        time. Click a building or person for the dossier.
-      </p>
+      <StoryChapter
+        chapter="map"
+        subtitle={`${c.meta.day_label} · Gilmorehill · University of Glasgow`}
+      />
 
       <div className="row">
-        <div className="map-stage">
+        <div className="map-stage story-stage">
+          <span className="comic-web-corner comic-web-corner--tl" />
+          <span className="comic-web-corner comic-web-corner--tr" />
+          <span className="comic-web-corner comic-web-corner--br" />
           {!mapError ? <div className="map-host" ref={wrapRef} /> : null}
           {mapError && c ? (
             <CampusMapFallback
@@ -629,9 +641,10 @@ export default function MapPage() {
           </div>
         </div>
 
-        <aside className="side-panel">
+        <aside className="side-panel story-dossier">
           {selectedBuilding ? (
             <>
+              <span className="story-dossier__stamp">LOCATION</span>
               <h3
                 style={{
                   margin: '0 0 8px',
@@ -647,7 +660,9 @@ export default function MapPage() {
                   ? ` · ${selectedBuilding.min_age}+ only`
                   : ''}
               </p>
-              <p style={{ fontSize: 13, margin: '0 0 12px' }}>{selectedBuilding.description}</p>
+              <p style={{ fontSize: 13, margin: '0 0 12px', lineHeight: 1.45 }}>
+                {selectedBuilding.description}
+              </p>
               <p className="caption" style={{ marginBottom: 12, fontFamily: 'var(--font-mono)' }}>
                 {selectedBuilding.lat.toFixed(5)}°N · {Math.abs(selectedBuilding.lon).toFixed(5)}°W
               </p>
@@ -706,6 +721,7 @@ export default function MapPage() {
             </>
           ) : (
             <>
+              <span className="story-dossier__stamp story-dossier__stamp--clear">SCENE</span>
               <h3
                 style={{
                   margin: '0 0 8px',
@@ -715,9 +731,10 @@ export default function MapPage() {
               >
                 Campus dossier
               </h3>
-              <p className="caption">
-                Orbit the real Gilmorehill map. Click an extruded building for hours, lectures and
-                who is inside at {hhmm(replayTime)}.
+              <p className="caption" style={{ lineHeight: 1.45 }}>
+                The fireworks plot starts here — Gilmorehill under satellite light. Click a building
+                to open hours, lectures, and who is inside at {hhmm(replayTime)}. Press play and watch
+                the campus breathe.
               </p>
               {selectedStudent && (
                 <p style={{ fontSize: 13, marginTop: 12 }}>
@@ -756,6 +773,6 @@ export default function MapPage() {
       </div>
 
       <TimeSlider />
-    </div>
+    </ComicPageShell>
   )
 }

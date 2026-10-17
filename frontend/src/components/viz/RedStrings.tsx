@@ -51,32 +51,12 @@ export default function RedStrings({ containerRef }: Props) {
   const caseData = useCaseStore((s) => s.case)
   const replayTime = useCaseStore((s) => s.replayTime)
   const svgRef = useRef<SVGSVGElement>(null)
-  const [tooltip, setTooltip] = useState<{
-    x: number
-    y: number
-    text: string
-  } | null>(null)
   const [tick, setTick] = useState(0)
 
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
-    const bump = () => setTick((n) => n + 1)
-    const stopRo = observeResize(container, bump)
-    const mo = new MutationObserver(bump)
-    mo.observe(container, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['style', 'class', 'data-card-id'],
-    })
-    window.addEventListener('resize', bump)
-    return () => {
-      stopRo()
-      mo.disconnect()
-      window.removeEventListener('resize', bump)
-    }
+    const el = containerRef.current
+    if (!el) return
+    return observeResize(el, () => setTick((n) => n + 1))
   }, [containerRef])
 
   useEffect(() => {
@@ -84,19 +64,39 @@ export default function RedStrings({ containerRef }: Props) {
     const svg = svgRef.current
     if (!container || !svg || !caseData) return
 
-    const board = boardStudents(caseData)
-    const boardIds = new Set(board.map((s) => s.id))
-    const pins = pinPositions(container)
-    const meetings = caseData.meetings.filter(
-      (m) =>
-        m.start <= replayTime && boardIds.has(m.a) && boardIds.has(m.b),
-    )
-
-    const w = container.clientWidth
-    const h = container.clientHeight
     const root = select(svg)
     root.selectAll('*').remove()
-    root.attr('width', w).attr('height', h)
+
+    const rect = container.getBoundingClientRect()
+    root.attr('width', rect.width).attr('height', rect.height)
+    root.attr('viewBox', `0 0 ${rect.width} ${rect.height}`)
+
+    const defs = root.append('defs')
+    const glow = defs
+      .append('filter')
+      .attr('id', 'string-glow')
+      .attr('x', '-40%')
+      .attr('y', '-40%')
+      .attr('width', '180%')
+      .attr('height', '180%')
+    glow.append('feGaussianBlur').attr('stdDeviation', 2.2).attr('result', 'b')
+    glow
+      .append('feMerge')
+      .selectAll('feMergeNode')
+      .data(['b', 'SourceGraphic'])
+      .enter()
+      .append('feMergeNode')
+      .attr('in', (d) => d)
+
+    const pins = pinPositions(container)
+    const boardIds = new Set(boardStudents(caseData).map((s) => s.id))
+    const meetings = caseData.meetings.filter(
+      (m) =>
+        boardIds.has(m.a) &&
+        boardIds.has(m.b) &&
+        m.start <= replayTime &&
+        m.end >= replayTime,
+    )
 
     const hotVerdict = (id: string) => {
       const v = suspectFor(caseData, id)?.verdict
@@ -122,9 +122,14 @@ export default function RedStrings({ containerRef }: Props) {
         .attr('fill', 'none')
         .attr('stroke', hot ? TOKENS.pin : '#8d5f33')
         .attr('stroke-width', strokeW)
-        .attr('opacity', hot ? 0.9 : 0.55)
-        .attr('pointer-events', 'stroke')
-        .style('cursor', 'default')
+        .attr('opacity', hot ? 0.95 : 0.5)
+        .attr('stroke-linecap', 'round')
+        // Never intercept board card clicks — strings sit under .cards
+        .attr('pointer-events', 'none')
+
+      if (hot) path.attr('filter', 'url(#string-glow)')
+
+      path.append('title').text(label)
 
       const len = (path.node() as SVGPathElement).getTotalLength()
       if (hot) {
@@ -140,25 +145,6 @@ export default function RedStrings({ containerRef }: Props) {
       } else {
         path.attr('stroke-dasharray', '6 4')
       }
-
-      path
-        .on('pointerenter', (event: PointerEvent) => {
-          const cRect = container.getBoundingClientRect()
-          setTooltip({
-            x: event.clientX - cRect.left,
-            y: event.clientY - cRect.top - 12,
-            text: label,
-          })
-        })
-        .on('pointermove', (event: PointerEvent) => {
-          const cRect = container.getBoundingClientRect()
-          setTooltip({
-            x: event.clientX - cRect.left,
-            y: event.clientY - cRect.top - 12,
-            text: label,
-          })
-        })
-        .on('pointerleave', () => setTooltip(null))
     })
   }, [caseData, replayTime, containerRef, tick])
 
@@ -166,34 +152,13 @@ export default function RedStrings({ containerRef }: Props) {
     position: 'absolute',
     inset: 0,
     pointerEvents: 'none',
-    zIndex: 5,
+    zIndex: 1, // below .cards (z-index: 2)
     overflow: 'visible',
   }
 
   return (
     <div style={wrapStyle} aria-hidden>
-      <svg ref={svgRef} style={{ width: '100%', height: '100%' }} />
-      {tooltip && (
-        <div
-          style={{
-            position: 'absolute',
-            left: tooltip.x,
-            top: tooltip.y,
-            transform: 'translate(-50%, -100%)',
-            background: TOKENS.panel,
-            border: `1px solid ${TOKENS.panelBorder}`,
-            color: TOKENS.mutedSoft,
-            padding: '4px 8px',
-            borderRadius: 6,
-            fontSize: 11,
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none',
-            fontFamily: 'Inter, sans-serif',
-          }}
-        >
-          {tooltip.text}
-        </div>
-      )}
+      <svg ref={svgRef} style={{ width: '100%', height: '100%', pointerEvents: 'none' }} />
     </div>
   )
 }
