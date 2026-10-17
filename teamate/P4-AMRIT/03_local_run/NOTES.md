@@ -37,3 +37,11 @@ Result:
 ### Team handoff: backend issue found
 
 `backend/app/pipeline/run.py` currently raises `NotImplementedError("pipeline steps 2-5 not built yet")`. P3's API handles this safely by falling back to `frontend/public/case.sample.json`, so the full front end works now. P1/P2/P3 should complete the remaining pipeline/analysis integration before claiming that `/api/case` is generated from `data/raw/` rather than the sample fixture.
+
+## Full check — local services running
+
+- `python -m pytest -q` in `backend/`: **3 passed**.
+- `npm.cmd run build` in `frontend/`: **passed**.
+- `npm.cmd run lint` completed with one non-blocking React manual-memoization warning in P4's `BoardPage.tsx`.
+- FastAPI is serving `http://127.0.0.1:8000` and Vite is serving `http://127.0.0.1:5173`.
+- Verified API health, the live Case endpoint through both FastAPI and Vite's proxy, plus every game and visualisation route: all returned HTTP 200.
