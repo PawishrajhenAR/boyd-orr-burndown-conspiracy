@@ -1,10 +1,11 @@
-"""Tests for Person 2's analysis code.
+"""
 
 `make_tiny_case()` builds a mini campus where each student is designed to
 break exactly one rule (or none), so every rule can be checked precisely.
 """
 import pytest
 
+from app.analysis.meetings import contacts, find_meetings
 from app.analysis.rules import FlagFactory, run_rules
 from app.analysis.testimony import annotate_statements, is_hypothetical
 from app.config import rule_config
@@ -221,3 +222,34 @@ def test_hypothetical_cues():
     assert is_hypothetical("I was tempted to go to Hive but I was shattered", 23)
     assert is_hypothetical("I already had a plan to go to HIVE.", 30)
     assert not is_hypothetical("Then I headed to the Adam Smith to close up a group project.", 21)
+
+
+# ---------- Step 4 tests: meetings ----------
+
+def test_meetings_in_tiny_campus(tiny):
+    ms = find_meetings(tiny)
+    # Boyd Orr 10:00-12:00: S1, S2, S5, S6, S8 are all there -> every pair of the 5 = 10 meetings.
+    # Library 10:00-11:40: S4 and S7 -> 1 meeting. Everyone else is alone.
+    assert len(ms) == 11
+    lib = next(m for m in ms if m.building_id == "library")
+    assert (lib.a, lib.b, lib.start, lib.end, lib.minutes) == ("S4", "S7", 600, 700, 100)
+    assert all(m.a < m.b for m in ms)                       # each pair stored once, in ID order
+    assert [m.id for m in ms][:2] == ["m00001", "m00002"]
+
+
+def test_touching_visits_do_not_meet(tiny):
+    # Fay leaves Boyd Orr at 11:30; someone arriving exactly at 11:30 has 0 shared minutes.
+    tiny.visits.append(tiny.visits[0].model_copy(update={"id": "v0200", "student_id": "S7", "start": 690, "end": 700}))
+    ms = find_meetings(tiny)
+    assert not any({m.a, m.b} == {"S6", "S7"} for m in ms)
+
+
+def test_min_minutes_is_configurable(tiny):
+    strict = rule_config.model_copy(update={"MIN_MEETING_MINUTES": 101})
+    assert not any(m.building_id == "library" for m in find_meetings(tiny, strict))   # only 100 min together
+
+
+def test_contacts(tiny):
+    c = contacts(find_meetings(tiny))
+    assert c["S4"] == {"S7"}
+    assert c["S1"] == {"S2", "S5", "S6", "S8"}
