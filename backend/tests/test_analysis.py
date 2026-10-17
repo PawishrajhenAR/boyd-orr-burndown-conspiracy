@@ -1,17 +1,21 @@
 """
-
 `make_tiny_case()` builds a mini campus where each student is designed to
 break exactly one rule (or none), so every rule can be checked precisely.
 """
+from pathlib import Path
+
 import pytest
 
+from app.analysis.build_case import build_case
 from app.analysis.meetings import contacts, find_meetings
+from app.analysis.oddities import detect_oddities
 from app.analysis.rules import FlagFactory, run_rules
+from app.analysis.scoring import build_suspects, score_students
 from app.analysis.testimony import annotate_statements, is_hypothetical
 from app.config import rule_config
 from app.analysis.timeutil import hhmm, overlap
-from app.models import Building, Lecture, Statement, Student, Visit
-from app.pipeline.run import CleanData
+from app.models import Building, Case, Lecture, Statement, Student, Visit
+from app.pipeline.run import CleanData, run_pipeline
 
 
 # ---------- helpers that keep the fixture short ----------
@@ -253,3 +257,137 @@ def test_contacts(tiny):
     c = contacts(find_meetings(tiny))
     assert c["S4"] == {"S7"}
     assert c["S1"] == {"S2", "S5", "S6", "S8"}
+
+
+# ---------- Step 5 tests: scoring and verdicts ----------
+
+def suspects_for(clean, config=rule_config):
+    _, flags = all_flags(clean)
+    return {x.student_id: x for x in build_suspects(clean.students, flags, find_meetings(clean, config), config)}
+
+
+def test_scores_count_each_rule_once(tiny):
+    _, flags = all_flags(tiny)
+    scores = score_students(tiny.students, flags)
+    assert scores["S7"] == (6, 3)        # subject_without_lecture 1 + missing_lecture 3 + false_society 2
+    assert scores["S4"] == (5, 3)        # missing_lecture 3 + statement_contradiction 2 (2 flags, counted once)
+    assert scores["S1"] == (0, 0)
+
+
+def test_top_six_are_conspirators_and_ranked(tiny):
+    sus = suspects_for(tiny)
+    conspirators = {k for k, v in sus.items() if v.verdict == "conspirator"}
+    assert conspirators == {"S7", "S4", "S8", "S2", "S3", "S5"}
+    assert sus["S7"].rank == 1 and sus["S4"].rank == 2
+    assert sus["S6"].verdict == "clear"            # score 2 is below the threshold
+    assert sorted(x.rank for x in sus.values()) == list(range(1, 9))
+
+
+def test_no_mastermind_when_nobody_met_all(tiny):
+    sus = suspects_for(tiny)
+    assert "mastermind" not in {v.verdict for v in sus.values()}
+    assert set(sus["S1"].conspirators_met) == {"S2", "S5", "S8"}   # Ann met only 3 of the 6
+
+
+def test_mastermind_found_when_clean_student_met_all(tiny):
+    # Only 4 conspirators this time; let Dan (S4) and Gus (S7) also pass by Ann in the library.
+    tiny.visits.append(tiny.visits[0].model_copy(update={"id": "v0300", "student_id": "S4", "building_id": "library", "start": 1030, "end": 1050}))
+    tiny.visits.append(tiny.visits[0].model_copy(update={"id": "v0301", "student_id": "S7", "building_id": "library", "start": 1060, "end": 1080}))
+    four = rule_config.model_copy(update={"CONSPIRATOR_COUNT": 4})
+    sus = suspects_for(tiny, four)
+    assert {k for k, v in sus.items() if v.verdict == "conspirator"} == {"S7", "S4", "S8", "S2"}
+    assert sus["S1"].verdict == "mastermind"
+    assert set(sus["S1"].conspirators_met) == {"S7", "S4", "S8", "S2"}
+    assert len(sus["S1"].meeting_ids_with_conspirators) == 4
+
+
+# ---------- Step 6 tests: oddities ----------
+
+def test_oddities_on_tiny_campus(tiny):
+    odd = detect_oddities(tiny, find_meetings(tiny))
+    titles = [o.title for o in odd]
+    assert "No timetable for Pharmacy" in titles
+    assert any(t.startswith("Unusual age: Cat Young") for t in titles)
+    one = next(o for o in odd if o.title == "Only one log all day")
+    assert set(one.student_ids) == {"S4", "S6", "S7", "S8"}
+    assert len({o.id for o in odd}) == len(odd)
+
+
+# ---------- Step 7 tests: the whole Case ----------
+
+def test_build_case_is_valid_json_for_the_api(tiny):
+    case = build_case(tiny, rule_config)
+    again = Case.model_validate_json(case.model_dump_json())      # survives the trip to JSON and back
+    assert again.meta.counts["students"] == 8
+    assert again.meta.counts["conspirators"] == 6
+    assert again.meta.time_min == 540 and again.meta.time_max == 1488
+    assert len({f.id for f in again.flags}) == len(again.flags)
+    assert any(st.claims for st in again.statements)                # claims were filled in
+    assert [x.rank for x in again.suspects] == list(range(1, 9))
+
+
+# ---------- Acceptance tests on the REAL data (need P1's pipeline + data/raw) ----------
+
+REAL_DIR = Path(__file__).resolve().parents[2] / "data" / "raw"
+CONSPIRATORS = {"2456431B", "2774868P", "2786843M", "2546112P", "2712324G", "2813225B"}
+MASTERMIND = "2453876J"
+
+
+@pytest.fixture(scope="module")
+def real_case():
+    if not (REAL_DIR / "people_data.csv").exists():
+        pytest.skip("real data is not in data/raw yet")
+    try:
+        clean = run_pipeline(REAL_DIR)
+    except NotImplementedError:
+        pytest.skip("P1's run_pipeline is not ready yet")
+    if clean is None or not clean.visits:
+        pytest.skip("P1's run_pipeline returned no data yet")
+    return build_case(clean, rule_config)
+
+
+def real_rules(case, sid):
+    return {f.rule for f in case.flags if f.student_id == sid}
+
+
+def test_real_exact_six_conspirators(real_case):
+    assert {x.student_id for x in real_case.suspects if x.verdict == "conspirator"} == CONSPIRATORS
+
+
+def test_real_mastermind_is_clean_and_met_all_six(real_case):
+    boss = next(x for x in real_case.suspects if x.verdict == "mastermind")
+    assert boss.student_id == MASTERMIND
+    assert set(boss.conspirators_met) == CONSPIRATORS
+    assert not [f for f in real_case.flags if f.student_id == MASTERMIND and f.severity >= 2]
+
+
+def test_real_paul_butler_is_seventh_and_suspicious(real_case):
+    paul = next(x for x in real_case.suspects if x.student_id == "2729563B")
+    assert paul.verdict == "suspicious" and paul.rank == 7
+
+
+def test_real_key_flags(real_case):
+    assert "out_of_hours" in real_rules(real_case, "2786843M")                       # Abdul, Boyd Orr 22:08
+    assert "age_restricted_venue" in real_rules(real_case, "2813225B")               # Stuart, The Hive
+    assert "impossible_overlap" in real_rules(real_case, "2456431B")                 # Oscar
+    assert {"missing_lecture", "impossible_overlap"} <= real_rules(real_case, "2774868P")      # Alice
+    assert {"missing_lecture", "false_society_claim"} <= real_rules(real_case, "2546112P")     # Eric
+    assert {"id_mismatch", "left_lecture_early", "statement_contradiction"} <= real_rules(real_case, "2712324G")  # Jonny
+
+
+def test_real_no_false_contradictions(real_case):
+    for sid in ["2797619M", "2425599J", "2527287T", "2522391J"]:     # Russell M., Angela, Danny, Lee
+        assert "statement_contradiction" not in real_rules(real_case, sid)
+
+
+def test_real_conspirator_count_is_configurable():
+    if not (REAL_DIR / "people_data.csv").exists():
+        pytest.skip("real data is not in data/raw yet")
+    try:
+        clean = run_pipeline(REAL_DIR)
+    except NotImplementedError:
+        pytest.skip("P1's run_pipeline is not ready yet")
+    if clean is None or not clean.visits:
+        pytest.skip("P1's run_pipeline returned no data yet")
+    five = build_case(clean, rule_config.model_copy(update={"CONSPIRATOR_COUNT": 5}))
+    assert sum(1 for x in five.suspects if x.verdict == "conspirator") == 5
