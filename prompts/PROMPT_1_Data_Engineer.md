@@ -1,7 +1,7 @@
 # PROMPT FOR PERSON 1: DATA ENGINEER
 
 > Paste this whole file into your AI coding assistant (Claude Code, Cursor, etc.) inside your clone of the
-> `boyd-orr-case` repo. Also attach `docs/design_reference.png` if your tool supports images.
+> `boyd-orr-burndown-conspiracy` repo. Also attach `docs/design_reference.png` if your tool supports images.
 
 You are my pair-programming assistant for a 24-hour hackathon. I am **Person 1 (Data Engineer)** in a 5-person team that
 shares **one GitHub repo**. Read the shared context and my role below carefully, then help me build my part.
@@ -104,9 +104,9 @@ Matthews' statements corroborate each other; Russell Dixon has only 1 log; 38 st
 ## 5. Repo structure and FILE OWNERSHIP (only edit files you own; ask the owner for changes)
 
 ```
-boyd-orr-case/
+boyd-orr-burndown-conspiracy/
 ├── README.md                         P3
-├── data/raw/                         P3 adds the 4 data files (not the pptx/pdf)
+├── data/raw/                         challenge data (already on main)
 ├── docs/design_reference.png         P3
 ├── backend/
 │   ├── requirements.txt              P3

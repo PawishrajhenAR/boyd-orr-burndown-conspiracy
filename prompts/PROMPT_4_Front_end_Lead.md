@@ -1,9 +1,9 @@
-# PROMPT FOR PERSON 5: VISUALISATION DEVELOPER
+# PROMPT FOR PERSON 4: FRONT-END GAME LEAD
 
 > Paste this whole file into your AI coding assistant (Claude Code, Cursor, etc.) inside your clone of the
-> `boyd-orr-case` repo. Also attach `docs/design_reference.png` if your tool supports images.
+> `boyd-orr-burndown-conspiracy` repo. Also attach `docs/design_reference.png` if your tool supports images.
 
-You are my pair-programming assistant for a 24-hour hackathon. I am **Person 5 (Visualisation Developer)** in a 5-person team that
+You are my pair-programming assistant for a 24-hour hackathon. I am **Person 4 (Front-end Game Lead)** in a 5-person team that
 shares **one GitHub repo**. Read the shared context and my role below carefully, then help me build my part.
 
 How to work with me:
@@ -14,7 +14,7 @@ How to work with me:
   message I can send to the owner instead.
 - Follow the data contract (section 6) **exactly**: same field names, types and time units. Never hard-code student
   names/IDs in logic (only in tests).
-- Commit after each working step on a branch `p5-<topic>`, with a clear message, and remind me to open a PR at the checkpoints.
+- Commit after each working step on a branch `p4-<topic>`, with a clear message, and remind me to open a PR at the checkpoints.
 - If anything in the data or the contract seems wrong, stop and tell me rather than guessing.
 
 ---
@@ -104,9 +104,9 @@ Matthews' statements corroborate each other; Russell Dixon has only 1 log; 38 st
 ## 5. Repo structure and FILE OWNERSHIP (only edit files you own; ask the owner for changes)
 
 ```
-boyd-orr-case/
+boyd-orr-burndown-conspiracy/
 ├── README.md                         P3
-├── data/raw/                         P3 adds the 4 data files (not the pptx/pdf)
+├── data/raw/                         challenge data (already on main)
 ├── docs/design_reference.png         P3
 ├── backend/
 │   ├── requirements.txt              P3
@@ -280,79 +280,88 @@ with collapsible sections on the right, and labelled group boxes ("Conspirators"
 
 ---
 
-# YOUR ROLE: PERSON 5, VISUALISATION DEVELOPER (D3 inside React, where most of the points are)
+# YOUR ROLE: PERSON 4, FRONT-END GAME LEAD (React app, pages, game flow, look and feel)
 
-You own `frontend/src/components/viz/*` and `pages/MapPage.tsx`, `pages/TimelinePage.tsx`, `pages/NetworkPage.tsx`.
-P4 owns the app shell, store and router; you **read** the store (section 9) and call its actions, and you never edit P4's files.
-Build every component against `case.sample.json` first, then the real `case.json` at H12.
+You own the Vite project setup, `App.tsx` + router, `store/useCaseStore.ts`, `theme/*`, `content/story.ts`,
+`components/game/*` and the pages `Title, Briefing, Evidence, Board, Interrogation, HQ, Accuse, CaseClosed`.
+P5 owns `components/viz/*` and `pages/MapPage.tsx`, `TimelinePage.tsx`, `NetworkPage.tsx`; you only route to them.
+Match `docs/design_reference.png` closely (section 10 tokens). The game must feel polished: animations, stamps, speech bubbles.
 
-## React + D3 pattern (use it everywhere)
-React renders an `<svg ref={ref}>`, and D3 draws inside it in a `useEffect` that depends on the data and the store values.
-Clean up on unmount. Use `ResizeObserver` for responsive width. Never let React and D3 both manage the same elements.
-Shared helpers in `viz/util.ts`: `hhmm(min)`, `timeScale(width)` over `[meta.time_min, meta.time_max]`, colour helpers
-by verdict (`conspirator=#d62828`, `mastermind=#ffd166`, `suspicious=#d35400`, `clear=#a8927a`), and
-`useVisibleFlags()` (respects judge mode / revealed flags).
+## Hour 0–1: setup (push quickly, because P5 builds inside your project)
+- `npm create vite@latest frontend -- --template react-ts`. Install `tailwindcss`, `zustand`, `framer-motion`,
+  `react-router-dom`, `d3` + `@types/d3`, `clsx`. Vite proxy `/api → http://localhost:8000`.
+- Tailwind theme extended with the section 10 tokens. Google Fonts: Fredoka, Inter, JetBrains Mono.
+- Router with **all** routes, including P5's pages as stubs (`export default function MapPage(){return null}`),
+  so P5 can replace the files without touching the router:
+  `/` Title · `/briefing` · `/evidence` · `/board` · `/student/:id` · `/hq` · `/map` · `/timeline` · `/network` · `/accuse` · `/closed`.
+- `useCaseStore` exactly as section 9. Until P3's `client.ts` lands, load `/case.sample.json` directly.
 
-## Components (exact names, P4 imports them)
-
-1. **`<TimeSlider />`** (bottom bar of the Board, also on Map/Timeline/Network): range `meta.time_min…time_max`
-   (so it can go past midnight), hour ticks, a big round thumb with the time label above, a ▶/❚❚ play button
-   (`togglePlay`, advances 5 min every 100 ms), and small red tick marks where flags happen. Writes `setReplayTime`.
-   Styled like the mockup (orange track, dark bar, "REPLAY THE DAY").
-
-2. **`<RedStrings containerRef />`** (overlay on P4's cork board): find cards via `[data-card-id]`, compute pin
-   positions (card top-centre) relative to the container, and draw curved SVG paths for meetings between **board
-   students** with `start ≤ replayTime`. Red solid lines between conspirators/mastermind, thin dashed brown otherwise.
-   Width by minutes together. Hover → tooltip "Library · 17:03–17:23 (20 min)". Recompute on resize, on card layout
-   change (`MutationObserver`), and on `replayTime`. Strings animate in (stroke-dashoffset).
-
-3. **`<DayTimeline studentId />`** (Interrogation, Lecture tab): mini Gantt. Rows = buildings that student visited
-   (+ their lecture building), x = time. Visit bars, the **expected lecture slot as a ghost box**, closed-hours hatched
-   per row, and red outline on bars referenced by flags. Click a bar → highlight the matching log line.
-
-4. **`<Clock24 studentId />`** (Interrogation, Hours tab): radial 24-hour clock (00 at top). Shaded arc = opening hours
-   of each visited building (one ring per building), visit arcs on top, out-of-hours portions red and pulsing,
-   age-restricted visits with a "18+" badge. Centre text: number of rule breaks. Must handle visits past midnight.
-
-5. **`<FlagHeatmap />`** (HQ): buildings × hour, cell = number of people present (from visits); overlay red dots for flags.
-   Click a cell → set replay time + select building.
-
-6. **`<RuleBars />`** (HQ): horizontal bars of flag counts per rule, coloured by severity. Click → filter list.
-
-7. **`<StorylineMini />`, `<NetworkMini />`**: small static versions for the Case Closed newspaper.
+## Shared components (`components/game/`)
+`Panel` (rounded, 2px border) · `TopBar` (case title + 3 stat boxes) · `StatBox` · `SpeechBubble` (typewriter text,
+framer-motion) · `Character` (flat SVG: `variant="ember" | "morag" | "pip" | "student"`; student colours come from data:
+hair = `hair_colour`, skin from a fixed palette by hash of ID, shirt by subject) · `Polaroid` (photo + name + status line
++ pin; slight random tilt by ID hash; `data-card-id` attribute **required**, because P5's red strings measure it) ·
+`Stamp` (LIAR / CONSPIRATOR / CLEARED / MASTERMIND?, slam-in animation: scale 2→1, opacity 0→1, rotate) ·
+`StickyNote` · `Button` (variants: outline accent, solid danger) · `NavRail` (icons to Board, HQ, Map, Timeline, Network, Evidence).
 
 ## Pages
 
-**Map `/map`**, "where it happened" (location data): `d3.geoMercator().fitExtent()` on the 14 buildings' lat/lon.
-A stylised campus: dark background, soft roads not required. Buildings as rounded labelled tiles/pins sized by visit
-count, with opening hours on hover. At `replayTime`, show a dot per student currently inside (force-collide them around
-the building). Conspirators are red, the mastermind (only once revealed/judge mode) gold. Buildings with flags at that
-time glow red. Click a building → side panel (entity info: description, opening hours, lectures, current occupants,
-flag list). Selecting a student draws their **path through the day** (animated line between buildings in time order).
-Includes `<TimeSlider />`.
+**Title `/`**: logo text "CASE FILE #1105: THE BOYD ORR FIREWORK PLOT", Inspector Ember, buttons **Start case** and
+**Judge mode** (sets `judgeMode=true`, reveals all flags, jumps to `/board`). Corkboard texture background.
 
-**Timeline `/timeline`**, "the day" (timeline data): **storyline chart**: rows = buildings, x = time, one line per
-student moving between rows (smooth `d3.curveMonotoneX` transitions, small per-student offset inside a row), closed
-hours hatched per row, lecture visits drawn thicker, flags as red ✗ markers with labels, meetings with the selected
-student as gold rings. Filters: All / Flagged only / Selected + who they met. Brush to zoom the time axis. A vertical
-line follows `replayTime`. Hover a line → the student's name and statement snippet. Click → `selectStudent`.
+**Briefing `/briefing`**: PC Morag with 4 speech bubbles (text from `story.ts`, supplied by P3), then a "Case notes"
+card listing the 3 game rules **and** the case counts from `case.meta.counts`. Button → Evidence.
 
-**Network `/network`**, "who met whom" (people data). Use the **dark link-analysis style** from section 10:
-`d3-force` graph; nodes = students (optionally buildings, as a toggle "show places"); edge = they met (weight = total
-minutes); edge label on hover "met at Library 17:03". Controls: search box (top-right, finds and centres a student),
-zoom +/- and fit (top-left, `d3.zoom`), filter "only flagged + their contacts" (default ON; the full graph is a
-hairball of thousands of edges), "min minutes together" slider, and `replayTime` cut-off. A labelled rounded **group
-box** around conspirators ("Conspirators"), and a **"Reveal mastermind"** button that animates the mastermind to the
-centre and draws gold edges to every conspirator they met, with the caption "Clean record · met 6/6". Floating
-details panel on the right with collapsible sections (Profile, Flags, Meetings, Societies), like the reference.
+**Evidence Room `/evidence`** (the "gross CSV → pretty" moment): left, a raw-looking table of 6 messy sample rows
+built from `data_quality` (original values highlighted red); right, the cleaned values (green); a counter strip
+("4 files · 662 logs · 163 students · 14 buildings · N issues fixed"); issues grouped by type with count chips.
+Optional **Upload new case** button → `uploadCase(files)` from `client.ts`.
 
-## Acceptance checks
-- On the real data, the Network "Reveal" shows Scott Johnston connected to all 6 conspirators.
-- Storyline: Abdul Murphy's 22:08 Boyd Orr visit sits in the hatched closed zone. Stuart Wands's Hive line has an "18+" ✗.
-- Clock24 for Stuart Wands draws 22:08 → 00:48 correctly across midnight.
-- 60 fps while dragging the slider on the board (memoise derived data with `useMemo`; avoid re-running force layouts on every tick).
-- Every chart has a title, axis/legend where needed, tooltips, and a one-line "how to read this" caption (judges love this).
+**Board `/board`** (the hub, exactly like the mockup):
+- `TopBar`: "Clues found x / y" (revealed flags / total flags of the board students), "Lies caught" (revealed
+  `statement_contradiction` flags), "Time left" countdown to 5 Nov 00:00 relative to `replayTime` (pure drama).
+- Left panel: Inspector Ember + `SpeechBubble` showing `hint` (auto-generated from the selected student's newest revealed
+  flag, e.g. *"{name} says she was in {building}… but her card was swiped elsewhere!"*), sidekicks PC Morag and Pip.
+- Centre: cork board with `boardStudents()` (≤12) as Polaroids in 2–3 staggered rows. Status line under each name:
+  no checks yet → "Not checked yet" (grey) · revealed flags → the top flag title in red · examined and clean → "Alibi
+  checks out" (green) · has meetings with revealed conspirators → "Seen with {name}" (orange). Stamps appear when
+  revealed. Mount P5's `<RedStrings />` overlay inside the cork board container. Two evidence `StickyNote`s show the
+  two most severe revealed flags. A "Files" drawer button lists **all** students with search.
+- Right panel "Interrogation Room": selected student → statement (quote) and logs (mono font, ✗ on visits referenced by
+  flags), a red box "N contradictions found!", buttons **Ask a clue** (Pip hint → points at the highest-score unexamined
+  student) and **ACCUSE!** (→ `/accuse`), and **Examine →** (→ `/student/:id`). Small text "accuse wrongly = lose 1 badge".
+- Bottom: P5's `<TimeSlider />` ("Replay the day").
+
+**Interrogation `/student/:id`** (step-by-step checks, the core gameplay): header with Polaroid + profile (entity info:
+age, year, subject, societies, lecture slot). Four tabs; opening tabs 1–3 calls `markExamined` and reveals that rule
+group's flags with a stamp animation:
+1. **Lecture**: P5's `<DayTimeline studentId />` with the expected lecture slot ghosted. Verdict line.
+2. **Hours**: P5's `<Clock24 studentId />`. Lists out-of-hours / age-restricted visits.
+3. **Alibi**: statement text with **testimony annotation**: claims highlighted (green = matched visit, red =
+   contradiction, grey dashed = hypothetical; hover shows the matched visit), and the logs side by side. If there is no
+   statement: "No statement given". Shows id_mismatch notes.
+4. **Profile**: meetings list (with whom, where, when), flags table, score bar, and a link "Show on network".
+Bottom: verdict `Stamp` + score after all 3 checks, then a **Back to board** button.
+
+**HQ `/hq`** (high-level dashboard for a security guard): KPI tiles (students, visits, flags by severity, conspirators
+found by the player), P5's `<FlagHeatmap />` and `<RuleBars />`, a top-10 suspects table (sortable), and building
+occupancy now (at `replayTime`).
+
+**Accuse `/accuse`**: grid of all flagged + top-12 cards; pick 6 conspirators and 1 mastermind. Each choice shows its
+supporting evidence. Submit → compare to `suspects` verdicts. Wrong picks: lose a badge and Pip explains why. All correct → `/closed`.
+
+**Case Closed `/closed`**: newspaper front page ("THE GLASGOW EVENING POST · MASTERMIND UNMASKED!") with the mastermind
+Polaroid, the 6 conspirators with one-line reasons (from flag titles), and small embedded charts (`<StorylineMini />`,
+`<NetworkMini />` from P5). An **"Other oddities"** column from `case.oddities`, plus a "How we cleaned the data" box
+from `data_quality` counts. Button **Replay case**.
+
+## Quality bar
+- Every page works at 1280–1920 wide, with keyboard focus states and `prefers-reduced-motion` (disable the slam animation).
+- No hard-coded student names: everything comes from `case`.
+- Loading and error states (if the API is down, the fallback banner says "Offline case file loaded").
+- Stretch: sound effects (stamp thud, typewriter) behind a mute toggle.
 
 ## Hand-offs
-- **H1:** replace P4's stub pages with your files. **H6:** TimeSlider + RedStrings + Clock24 on sample data.
-- **H12:** all components on real data. **H18:** freeze, then performance and polish.
+- **H1:** router + store + tokens + Polaroid with `data-card-id` pushed, so P5 can start.
+- **H6:** Board and Interrogation working on `case.sample.json`.
+- **H12:** working on the real `case.json` (with P3). **H18:** feature freeze, polish only.

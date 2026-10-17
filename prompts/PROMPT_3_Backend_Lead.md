@@ -1,9 +1,9 @@
-# PROMPT FOR PERSON 2: DETECTIVE ANALYST
+# PROMPT FOR PERSON 3: BACKEND & INTEGRATION LEAD
 
 > Paste this whole file into your AI coding assistant (Claude Code, Cursor, etc.) inside your clone of the
-> `boyd-orr-case` repo. Also attach `docs/design_reference.png` if your tool supports images.
+> `boyd-orr-burndown-conspiracy` repo. Also attach `docs/design_reference.png` if your tool supports images.
 
-You are my pair-programming assistant for a 24-hour hackathon. I am **Person 2 (Detective Analyst)** in a 5-person team that
+You are my pair-programming assistant for a 24-hour hackathon. I am **Person 3 (Backend & Integration Lead)** in a 5-person team that
 shares **one GitHub repo**. Read the shared context and my role below carefully, then help me build my part.
 
 How to work with me:
@@ -14,7 +14,7 @@ How to work with me:
   message I can send to the owner instead.
 - Follow the data contract (section 6) **exactly**: same field names, types and time units. Never hard-code student
   names/IDs in logic (only in tests).
-- Commit after each working step on a branch `p2-<topic>`, with a clear message, and remind me to open a PR at the checkpoints.
+- Commit after each working step on a branch `p3-<topic>`, with a clear message, and remind me to open a PR at the checkpoints.
 - If anything in the data or the contract seems wrong, stop and tell me rather than guessing.
 
 ---
@@ -104,9 +104,9 @@ Matthews' statements corroborate each other; Russell Dixon has only 1 log; 38 st
 ## 5. Repo structure and FILE OWNERSHIP (only edit files you own; ask the owner for changes)
 
 ```
-boyd-orr-case/
+boyd-orr-burndown-conspiracy/
 ├── README.md                         P3
-├── data/raw/                         P3 adds the 4 data files (not the pptx/pdf)
+├── data/raw/                         challenge data (already on main)
 ├── docs/design_reference.png         P3
 ├── backend/
 │   ├── requirements.txt              P3
@@ -280,84 +280,65 @@ with collapsible sections on the right, and labelled group boxes ("Conspirators"
 
 ---
 
-# YOUR ROLE: PERSON 2, DETECTIVE ANALYST (rules, testimony, meetings, scoring)
+# YOUR ROLE: PERSON 3, BACKEND & INTEGRATION LEAD (repo, contract, API, deploy, pitch)
 
-You own `backend/app/analysis/*` and `backend/tests/test_analysis.py`. You turn P1's `CleanData` into the final
-`Case` (section 6). **Every** stamp, string and score in the game comes from your code, so every flag needs a clear,
-human-readable `title` and `detail` with times (e.g. *"Swiped into Boyd Orr Building at 22:08, but it closes at 21:00."*).
-Never hard-code student names or IDs in logic. They may appear only in tests.
+You own the repo skeleton, `backend/app/main.py`, `models.py`, `config.py`, `export.py`, `requirements.txt`,
+`tests/test_api.py`, `frontend/src/types/case.ts`, `frontend/src/api/client.ts`, `frontend/public/case.sample.json`,
+`README.md`, `data/raw/` and `docs/`. You are the glue: **the H1 and H12 checkpoints are your responsibility.**
 
-Until P1 is ready (around H6), develop against a tiny hand-made `CleanData` fixture in your tests.
+## Hour 0–1 (do this FIRST, everyone is waiting on it)
+1. Repo already exists on GitHub as `boyd-orr-burndown-conspiracy`. Confirm all teammates can clone it, then push/scaffold the folder tree from section 5
+   with empty `__init__.py` files and placeholder modules that contain the agreed function signatures:
+   `pipeline/run.py: run_pipeline(raw_dir) -> CleanData` and `analysis/build_case.py: build_case(clean, config) -> Case`.
+2. Confirm `data/raw/` already has the 4 data files and `docs/design_reference.png` is present (already on main).
+   Keep `.gitignore` covering Python, Node and `.env`.
+3. `models.py`: write the Pydantic models **exactly** as in section 6.
+4. `types/case.ts`: identical TypeScript interfaces (same snake_case field names, `Literal` → union types).
+5. `case.sample.json`: a hand-made, valid `Case` with ~10 students (use the reference findings in section 4 so it looks
+   realistic: 6 conspirators, Scott as mastermind, Paul suspicious, 2 clear), ~14 buildings with real lat/lon, ~40 visits,
+   3 statements with claims, ~15 flags, ~20 meetings. Validate it with `Case.model_validate_json` in a test.
+   This lets P4/P5 build with realistic data from hour 1.
+6. `README.md`: what the project is, how to run backend and frontend, the branch rules (section 11), and the owner table.
+7. Post in team chat: "contract is on main".
 
-## Step 1: `rules.py` (question: *who broke which rule from the brief?*)
-One function per rule: `def rule_x(clean: CleanData) -> list[Flag]`, plus `ALL_RULES = [...]` and `run_rules(clean)`.
-Flag IDs `f0001…`. Format times with a helper `hhmm(minutes)` (handles ≥1440 → `"00:48 (+1)"`).
+## Step 2: `config.py`
+`pydantic-settings` `Settings` with `RAW_DIR`, `CORS_ORIGINS`, and the rule config from section 7 (`CONSPIRATOR_COUNT`,
+`SEVERITY`, `MIN_MEETING_MINUTES`) as a mutable `RuleConfig` model.
 
-| Rule | Logic | Sev |
-|---|---|---|
-| `missing_lecture` | No visit to the student's lecture building overlapping their lecture slot. Also fire it when the subject has **no** lecture anywhere ("Pharmacy has no lecture on campus") | 3 |
-| `multiple_lectures` | 2+ separate visits overlapping the slot | 2 |
-| `left_lecture_early` | Attended, but arrived >10 min late or left >10 min early vs the (inferred) slot | 2 |
-| `out_of_hours` | Visit not fully inside opening hours (skip `always_open`). Take care with wrap-around (Library till 02:00) | 3 |
-| `impossible_overlap` | Two of the same student's visits in **different** buildings overlap by >0 min | 3 |
-| `age_restricted_venue` | Visit to a building with `min_age` while `student.age < min_age` | 3 |
-| `id_mismatch` | Student has a `raw_id` that is not their canonical ID (letters/digits differ, not just case) | 2 |
-| `id_format` | A raw ID differs only by letter case | 1 |
-| `subject_without_lecture` | The subject has no lecture in any building (data oddity) | 1 |
-| `statement_contradiction` | From step 2: a non-hypothetical claim with no matching visit, or a statement that says "my … lecture" while `missing_lecture` fired | 2 |
-| `statement_omission` | Visits to campus buildings that a statement never mentions. Informational only, **only** for statements that list places explicitly (≥3 claims) | 0 |
-| `false_society_claim` | Statement names a society (fuzzy match ≥0.85 against all society names in the data) that the student is not a member of | 2 |
+## Step 3: `main.py` (FastAPI)
+- On startup: `case = build_case(run_pipeline(RAW_DIR), rule_config)`. Cache it in memory. If the pipeline isn't ready
+  yet, load `case.sample.json` so the API always works (log a warning).
+- Implement every endpoint in section 8. `students/{id}` accepts any raw ID too (normalise and resolve).
+- `POST /api/upload`: `UploadFile` × 4 (people, logs, locations, statements). Save to a temp dir, run the pipeline,
+  replace the cache, and return the `Case`. Return a clear 422 with the reason if a file is missing or malformed.
+- `PUT /api/config`: update weights/count → re-score only (re-run `build_case`).
+- CORS for `http://localhost:5173` and the deployed front-end URL. Gzip middleware (the case JSON is a few MB).
+- Swagger at `/docs` shows good descriptions (useful in the pitch as proof of reusability).
 
-## Step 2: `testimony.py` (question: *does what they say match where they were?* This is SAS's "testimony annotation")
-- For each statement, find every alias occurrence (from `clean.aliases`, longest alias first, word boundaries, no
-  overlapping matches) → `Claim(building_id, text, char_start, char_end)`. For an ambiguous alias (GUU/QMU) the claim
-  matches if **either** building was visited. Store the first building actually visited, else the first candidate.
-- **Hypothetical detection:** a claim is `hypothetical=True` if its sentence contains cue words such as `tempted`,
-  `plan`, `planned`, `wanted me`, `tried to get me`, `instead`, `didn't`, `did not`, `wasn't`, `never`, `want to launch`,
-  `take out`, `promised he would`, `before … opened` (keep the list in one constant and test it).
-- Non-hypothetical claims get `matched_visit_id` = a visit by that student to that building (any time). Claims with no
-  match are contradictions.
-- Expected: Abdul Murphy claims the Wolfson (no visit) → contradiction. Jonny Craig claims Adam Smith (no visit) →
-  contradiction. Russell Matthews (QMU, HIVE) and Angela Jones (Hive) → hypothetical, **no** flags.
-- Off-campus places (Tesco, Nandos, town, home, bagel mania) are simply not aliases, so they are ignored.
+## Step 4: `export.py`
+`python -m app.export` → writes `frontend/public/case.json` (pretty-printed, sorted keys). Commit it at H12, H18 and
+before judging. This is the **offline fallback**: the demo must work even if the backend is down.
 
-## Step 3: `meetings.py` (question: *who was with whom?*)
-For every building, sort visits and sweep: two **different** students with overlapping visits in the same building
-(≥ `MIN_MEETING_MINUTES`) → `Meeting(a, b, building_id, start=max, end=min, minutes)`, with `a < b` by ID.
-Avoid O(n²) over all visits by grouping by building first. Expect several thousand meetings.
+## Step 5: `api/client.ts`
+`loadCase(): Promise<Case>`: try `GET /api/case` (2 s timeout), then `/case.json`, then `/case.sample.json`.
+Expose `uploadCase(files)` and `updateConfig(cfg)`. Ask P4 to add the Vite proxy `/api → http://localhost:8000`.
 
-## Step 4: `scoring.py` (question: *who are the 6 and who is the boss?*)
-Implement section 7 exactly (score = sum of severities of distinct rules). Then:
-- `conspirators` = top `CONSPIRATOR_COUNT` with score ≥ 3.
-- For each student with no flag of severity ≥ 2: `conspirators_met` = distinct conspirators they share a meeting with.
-  The max is `mastermind` only if they met **all** conspirators. Fill `meeting_ids_with_conspirators`.
-- Also fill `conspirators_met` for conspirators themselves (other conspirators they met), which the network uses.
-- `rank` 1..N over everyone.
+## Step 6: `tests/test_api.py`
+`TestClient`: health; `/api/case` validates as `Case`; `/api/students/2813225b` resolves to `2813225B`; upload with the
+real files returns the same conspirator set; config with `CONSPIRATOR_COUNT=5` returns 5 conspirators.
 
-## Step 5: `oddities.py` (question: *what else is strange?*, which earns bonus points)
-Generic detectors, each producing an `Oddity` with a clear `detail`:
-documented vs inferred lecture time differences · students with only 1 log · visits to always-open places at night
-(e.g. 03:01–05:33) · ages > 30 or < 18 · subjects missing from any timetable · statements that corroborate each other
-(two statements naming each other, like Beth Jones and Russell Matthews) · statement times that disagree with logs
-(stretch goal: parse "five minutes", "about 4 o'clock", "half 7") · societies-format quirk rows.
+## Step 7: Deploy (after H12)
+- Front end → Vercel or Netlify (static, uses `case.json` fallback). Backend → Render free tier (`uvicorn app.main:app --host 0.0.0.0 --port $PORT`).
+- Put both URLs in the README. Test them on a phone hotspot.
 
-## Step 6: `build_case.py`
-`build_case(clean: CleanData, config) -> Case`: run the rules → testimony (fill `statement.claims`) → contradiction
-flags → meetings → scoring → oddities → `CaseMeta` (counts, `time_min`/`time_max` over visits, `day_label="4 November"`).
+## Step 8: Integration duty (H12, the most important hour)
+Pull everyone's branches, run P1+P2 on real data, export, run the front end, and fix contract mismatches **together with
+the owners**. Keep a short `INTEGRATION.md` checklist of what you verified.
 
-## Acceptance tests (`tests/test_analysis.py`, on the real data via `run_pipeline`)
-- Conspirators (exact set): `2456431B` Oscar Brown, `2774868P` Alice Patterson, `2786843M` Abdul Murphy,
-  `2546112P` Eric Parkin, `2712324G` Jonny Craig, `2813225B` Stuart Wands.
-- Mastermind: `2453876J` Scott Johnston, with `len(conspirators_met) == 6` and no flags at all.
-- `2729563B` Paul Butler → verdict `"suspicious"`, rank 7.
-- Flags exist: Abdul `out_of_hours` (22:08 Boyd Orr), Stuart `age_restricted_venue` (The Hive), Oscar `impossible_overlap`,
-  Alice `missing_lecture` + `impossible_overlap`, Eric `missing_lecture` + `false_society_claim`, Jonny `id_mismatch` +
-  `left_lecture_early` + `statement_contradiction`.
-- No `statement_contradiction` for Russell Matthews `2797619M`, Angela Jones `2425599J`, Danny Thomas `2527287T`, Lee James `2522391J`.
-- Changing `CONSPIRATOR_COUNT` changes the number of conspirators (proves configurability).
-- Print a pretty summary table: `python -m app.analysis.build_case`.
-
-## Hand-offs
-- **H1:** agree severities with P3 (config) and confirm the flag `title` style with P4.
-- **H8–H12:** `build_case()` on real data with tests green → P3 wires it into the API and export.
-- Afterwards: write the "why each of the 7 stands out" one-liners (for the Case Closed page and pitch) and give them to P3 and P4.
+## Step 9: Story text + pitch (after H14)
+- Write `frontend/src/content/story.ts` content in coordination with P4 (P4 owns the file, you supply the text):
+  PC Morag's briefing (4 bubbles), Inspector Ember's hint lines per rule (use `{name}`, `{building}`, `{time}`
+  placeholders), and Pip's hints.
+- **Pitch (3 min):** problem (gross data) → Evidence Room (before/after) → live check of one conspirator (stamps) →
+  map/timeline → Network reveal of the mastermind → oddities → "every string is computed; upload a new case file"
+  (show `/docs` or upload). Record a backup screen video at H20. Rehearse twice at H22.
