@@ -16,3 +16,21 @@
 - P4 game pages: Title, Briefing, Evidence, Board, Interrogation, HQ, Accuse, and Case Closed
 
 P5 visualisation files remain owned by P5. P4 mounts those existing components in their designated game pages without editing them.
+
+## Gradual SaSProject alignment
+
+- Batch 1: [shared dark theme and title-page cleanup](04_theme_alignment/NOTES.md).
+
+- Batch 2: [searchable student register](05_student_register/NOTES.md).
+
+- Batch 3: [first evidence sweep](06_first_sweep/NOTES.md).
+
+- Batch 4: [suspect review and verdict evidence](07_suspect_review/NOTES.md).
+
+- Batch 5: [movement evidence and final results](08_movement_results/NOTES.md).
+
+- Batch 6: [complete investigation flow, sound, and browser verification](09_flow_integration/NOTES.md).
+
+## Main integration
+
+Merged all six frontend batches with current main, preserving team backend, data, and visualization changes. Resolved the title-page destination and Tailwind plugin conflicts. All 11 logic tests, production build, and lint passed (warnings remain). Integration verified in a separate checkout; the original P4 checkout and untracked workspace file were preserved.

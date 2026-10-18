@@ -1,0 +1,98 @@
+@import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+@import 'tailwindcss';
+
+/* Investigation File palette — one idea per screen, max 3 colours at once. */
+@theme {
+  --color-night: #14110f;
+  --color-paper: #efe6d2;
+  --color-ink: #1d1a17;
+  --color-amber: #f4b942;
+  --color-blush: #fde0e0;
+  --color-red: #e05252;
+  --color-alarm: #f07a7a; /* red for text on dark backgrounds (≥4.5:1) */
+  --color-blood: #b3121b;
+  --color-oxblood: #5c0000;
+  --font-type: 'Special Elite', 'Courier New', monospace;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: var(--color-night);
+  color: var(--color-paper);
+  font-family: var(--font-sans);
+}
+
+.snap-flow {
+  height: 100vh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+}
+.snap-page {
+  height: 100vh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  position: relative;
+  overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .snap-page { overflow-y: auto; }
+  .result-network { flex-shrink: 0; min-height: 400px; }
+  .result-network > div:not(:last-child) { width: 90px; }
+  .result-details { flex-direction: column; overflow: visible; flex-shrink: 0; padding-bottom: 64px; }
+  .result-details > div { width: 100%; flex-shrink: 0; }
+  [data-step="5"] > div { height: auto; min-height: 100%; }
+  [data-step="5"] .result-network ~ p { flex-shrink: 0; }
+}
+
+/* 3D card flip */
+.flip {
+  perspective: 800px;
+}
+.flip-inner {
+  transform-style: preserve-3d;
+}
+.flip-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Hatched closed-hours band for the movement chart */
+.hatch-closed {
+  fill: url(#hatch);
+}
+
+@keyframes pulse-ring {
+  0% { r: 6; opacity: 1; }
+  100% { r: 22; opacity: 0; }
+}
+.gold-ring {
+  animation: pulse-ring 1.4s ease-out infinite;
+}
+
+@keyframes caret {
+  50% { opacity: 0; }
+}
+.caret {
+  animation: caret 0.8s step-end infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .snap-flow { scroll-behavior: auto; }
+  .gold-ring, .caret { animation: none; }
+}
+
+/* "Download case summary" → print view of the final page only */
+@media print {
+  body, #root { background: #fff; color: #000; height: auto; }
+  .snap-flow { height: auto; overflow: visible; }
+  .snap-page { display: none; }
+  .snap-page.print-me { display: block; height: auto; overflow: visible; }
+  .no-print { display: none !important; }
+}
