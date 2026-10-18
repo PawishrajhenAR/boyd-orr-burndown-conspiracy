@@ -36,6 +36,6 @@ export default function SuspectReviewPage() {
       {flags.length === 0 ? <p>No rule flags recorded for this student.</p> : <ul>{flags.map((flag) => <li key={flag.id}><strong>{RULE_LABEL[flag.rule] ?? flag.rule}: {flag.title}</strong><p>{flag.detail}</p><small>Severity {flag.severity}{flag.time != null && ` · ${clock(flag.time)}`}</small></li>)}</ul>}
       <div className="register-toolbar"><Link className="btn" to={`/student/${encodeURIComponent(selected.student.id)}`}>Open student file</Link><button type="button" className="btn" onClick={() => setSelectedId(null)}>Close evidence</button></div>
     </section>}
-    <div className="register-toolbar">{phase > 0 && <button type="button" className="btn" onClick={() => changePhase(phase - 1)}>Previous stage</button>}{phase < 2 ? <button type="button" className="btn accent" onClick={() => changePhase(phase + 1)}>Reveal {phase === 0 ? 'conspirators' : 'watch list'} →</button> : <Link className="btn accent" to="/map">Follow the movement →</Link>}</div>
+    <div className="register-toolbar">{phase > 0 && <button type="button" className="btn" onClick={() => changePhase(phase - 1)}>Previous stage</button>}{phase < 2 ? <button type="button" className="btn accent" onClick={() => changePhase(phase + 1)}>Reveal {phase === 0 ? 'conspirators' : 'watch list'} →</button> : <Link className="btn accent" to="/movement-evidence">Follow the movement →</Link>}</div>
   </main>
 }

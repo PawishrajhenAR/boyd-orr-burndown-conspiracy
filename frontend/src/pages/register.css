@@ -19,3 +19,8 @@
 .register-card-back { background: var(--card); color: #1d1a17; transform: rotateY(180deg); }
 .register-initials { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #1d1a17; color: #efe6d2; font-family: var(--font-display); }
 @media (prefers-reduced-motion: reduce) { .register-card-inner { transition: none; } .register-page { animation: none; } }
+.movement-slider { display: block; width: 100%; margin: 16px 0; accent-color: var(--accent); }
+.movement-row { display: grid; grid-template-columns: minmax(120px, 1fr) 2fr; gap: 16px; align-items: center; margin: 18px 0; }
+.movement-track { position: relative; height: 28px; background: var(--panel-inner); border-radius: 6px; }
+.movement-bar { position: absolute; top: 0; height: 100%; min-width: 5px; padding: 0; border: 0; border-radius: 5px; background: var(--accent); cursor: pointer; }
+.movement-bar:focus-visible { outline: 2px solid var(--muted); outline-offset: 3px; }
