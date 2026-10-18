@@ -64,3 +64,16 @@ test('watch-list dialogue appears only when a suspicious verdict exists', () => 
 test('unknown placeholders remain visible', () => {
   assert.equal(fillTemplate('{total} and {nope}', scriptVars(realCase)), `${realCase.students.length} and {nope}`)
 })
+
+test('the mastermind reveal states the real places and times, never "same place, same time"', () => {
+  const s = buildScripts(realCase)
+  const reveal = s.level3.find(line => line.stage === 'reveal')!
+  const v = scriptVars(realCase)
+  assert.doesNotMatch(reveal.text, /same place|same time/i)
+  const boss = realCase.suspects.find(x => x.verdict === 'mastermind')!.student_id
+  const six = new Set(realCase.suspects.filter(x => x.verdict === 'conspirator').map(x => x.student_id))
+  const met = realCase.meetings.filter(m => (m.a === boss && six.has(m.b)) || (m.b === boss && six.has(m.a)))
+  assert.equal(v.meet_places, new Set(met.map(m => m.building_id)).size)
+  assert.ok(reveal.text.includes(`${v.meet_places} different buildings`), reveal.text)
+  assert.ok(reveal.text.includes(v.first_meet) && reveal.text.includes(v.last_meet), reveal.text)
+})

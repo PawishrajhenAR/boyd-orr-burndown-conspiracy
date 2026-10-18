@@ -1,78 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
-import { FALLBACK_REACTION, REACTIONS, SPEAKERS, type CharacterReaction, type Line, type ReactionId, type Speaker } from './dialogue'
+import { AnimatePresence, motion, useAnimationControls } from 'framer-motion'
+import { CharacterSprite, Typed } from './cast'
+import { SPEAKERS, stagingFor, type Line, type Speaker } from './dialogue'
 import { play } from './sound'
 
 export const AUTO_LINE_MS = 3400
-
-const REACTION_IDS = new Set<string>(Object.keys(REACTIONS))
-
-function reactionFor(id: ReactionId | string | undefined): CharacterReaction {
-  return id && REACTION_IDS.has(id) ? REACTIONS[id as ReactionId] : FALLBACK_REACTION
-}
-
-function CharacterSprite({ character, expression, speaker, active, reducedMotion }: {
-  character: 'mathew' | 'morag'
-  expression: string
-  speaker: boolean
-  active: boolean
-  reducedMotion: boolean
-}) {
-  const [failed, setFailed] = useState(false)
-  const safeExpression = /^[a-z-]+$/.test(expression) ? expression : 'neutral'
-  const src = `/characters/${character}/${safeExpression}.webp`
-
-  return (
-    <motion.div
-      className={`conversation-character conversation-character--${character}${speaker ? ' is-speaking' : ' is-listening'}`}
-      initial={reducedMotion ? false : { opacity: 0, y: 24, scale: 0.96 }}
-      animate={{ opacity: active ? 1 : 0.54, y: 0, scale: speaker ? 1.025 : 0.97 }}
-      transition={{ duration: reducedMotion ? 0 : 0.36, ease: 'easeOut' }}
-      aria-hidden="true"
-    >
-      {!failed ? (
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.img
-            key={src}
-            src={src}
-            alt=""
-            draggable={false}
-            onError={() => setFailed(true)}
-            initial={reducedMotion ? false : { opacity: 0.72, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: reducedMotion ? 0 : 0.22 }}
-          />
-        </AnimatePresence>
-      ) : (
-        <span className="conversation-character__fallback">{character === 'mathew' ? 'M' : 'P'}</span>
-      )}
-    </motion.div>
-  )
-}
-
-function Typed({ text, instant, onComplete }: { text: string; instant: boolean; onComplete: () => void }) {
-  const [length, setLength] = useState(0)
-
-  useEffect(() => {
-    if (instant) {
-      onComplete()
-      return
-    }
-    let revealed = 0
-    const stepMs = Math.max(10, Math.min(14, 680 / Math.max(text.length, 1)))
-    const timer = window.setInterval(() => {
-      revealed = Math.min(text.length, revealed + 1)
-      setLength(revealed)
-      if (revealed >= text.length) {
-        window.clearInterval(timer)
-        onComplete()
-      }
-    }, stepMs)
-    return () => window.clearInterval(timer)
-  }, [text, instant, onComplete])
-
-  return <>{instant ? text : text.slice(0, length)}</>
-}
 
 interface Props {
   lines: Line[]
@@ -97,7 +29,8 @@ export default function Conversation({ lines, index, onAdvance, onSkip, auto, on
   const [doneIndex, setDoneIndex] = useState(reducedMotion ? index : -1)
   const [cueIndex, setCueIndex] = useState(-1)
   const previousSpeaker = useRef<Speaker | null>(null)
-  const reaction = reactionFor(current?.reaction)
+  const reaction = stagingFor(current)
+  const shake = useAnimationControls()
   const evidence = current?.evidence
   const revealed = reducedMotion || revealedIndex === index
   const typingDone = reducedMotion || doneIndex === index
@@ -118,6 +51,12 @@ export default function Conversation({ lines, index, onAdvance, onSkip, auto, on
   useEffect(() => {
     if (!active) previousSpeaker.current = null
   }, [active])
+
+  // Reveal beat: a short camera shake as the line lands.
+  useEffect(() => {
+    if (!active || !reaction.impact || reducedMotion) return
+    void shake.start({ x: [0, -4, 4, -2, 0], transition: { duration: 0.32, delay: 0.12 } })
+  }, [active, index, reaction.impact, reducedMotion, shake])
 
   useEffect(() => {
     if (!active || !auto || atEnd || blocked || !typingDone) return
@@ -158,15 +97,17 @@ export default function Conversation({ lines, index, onAdvance, onSkip, auto, on
   }, [active, advanceOrReveal, atEnd, typingDone])
 
   if (!current) return null
-  const speakerCharacter = current.speaker === 'morag' ? 'morag' : 'mathew'
-  const listenerCharacter = speakerCharacter === 'morag' ? 'mathew' : 'morag'
-  const speakerExpression = speakerCharacter === 'morag' ? reaction.morag : reaction.mathew
-  const listenerExpression = listenerCharacter === 'morag' ? reaction.morag : reaction.mathew
   const who = SPEAKERS[current.speaker]
+  const impact = !!reaction.impact && !reducedMotion
 
   return (
-    <section className={`comic-conversation${reaction.impact ? ' is-impact' : ''}${reaction.camera ? ' is-focus' : ''}`} aria-label="Investigator dialogue">
-      <CharacterSprite key={`mathew-${reaction.mathew}`} character="mathew" expression={reaction.mathew} speaker={speakerCharacter === 'mathew'} active={active} reducedMotion={reducedMotion} />
+    <motion.section
+      className={`comic-conversation${reaction.impact ? ' is-impact' : ''}${reaction.camera ? ' is-focus' : ''}${active ? '' : ' is-idle'}`}
+      aria-label="Investigator dialogue"
+      animate={shake}
+    >
+      {impact && <span key={`burst-${index}`} className="impact-burst" aria-hidden="true" />}
+      <CharacterSprite character="mathew" expression={reaction.mathew} speaking={current.speaker === 'mathew'} impact={!!reaction.impact} reducedMotion={reducedMotion} className="comic-character" />
       <div className="comic-conversation__center">
         <AnimatePresence mode="wait" initial={false}>
           <motion.article
@@ -226,7 +167,7 @@ export default function Conversation({ lines, index, onAdvance, onSkip, auto, on
           <span className="comic-progress">{Math.max(0, index + 1)} / {lines.length} <span>· Space / →</span></span>
         </div>
       </div>
-      <CharacterSprite key={`morag-${reaction.morag}`} character="morag" expression={listenerCharacter === 'morag' ? listenerExpression : speakerExpression} speaker={speakerCharacter === 'morag'} active={active} reducedMotion={reducedMotion} />
-    </section>
+      <CharacterSprite character="morag" expression={reaction.morag} speaking={current.speaker === 'morag'} impact={!!reaction.impact} reducedMotion={reducedMotion} className="comic-character" />
+    </motion.section>
   )
 }

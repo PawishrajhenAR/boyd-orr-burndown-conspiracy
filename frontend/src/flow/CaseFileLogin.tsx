@@ -144,7 +144,7 @@ export default function CaseFileLogin({ c, onUnlock, reducedMotion }: Props) {
               ))}
             </dl>
             <div className="my-[5%] h-px bg-ink/20" />
-            <p className="font-type text-[clamp(13px,2vh,18px)]">Next: the register, then Level 1 · First sweep →</p>
+            <p className="font-type text-[clamp(13px,2vh,18px)]">Next: briefing with PC Morag, then the first sweep →</p>
             <div className="absolute right-[8%] bottom-[7%] -rotate-[8deg] border-4 border-blood px-3 py-1 font-type text-[clamp(12px,2vh,18px)] tracking-widest text-blood opacity-85">
               INVESTIGATION OPEN
             </div>
@@ -199,7 +199,7 @@ export default function CaseFileLogin({ c, onUnlock, reducedMotion }: Props) {
               <form onSubmit={submit} className="absolute inset-x-[15%] top-[36%] flex flex-col items-center gap-[clamp(10px,2.2vh,22px)]">
                 <div className="relative w-full rounded-sm bg-paper px-[6%] py-[clamp(12px,2.6vh,26px)] text-ink shadow-[0_8px_20px_rgba(0,0,0,0.3)]">
                   <label className="flex items-center gap-3 font-type text-[clamp(11px,1.5vh,14px)] tracking-wider">
-                    <span className="w-[46%] shrink-0 whitespace-nowrap">INVESTIGATOR ID</span>
+                    <span className="w-[46%] shrink-0 whitespace-nowrap uppercase">Investigator ID</span>
                     <input
                       ref={firstInput}
                       value={id}
@@ -210,7 +210,7 @@ export default function CaseFileLogin({ c, onUnlock, reducedMotion }: Props) {
                     />
                   </label>
                   <label className="mt-[clamp(10px,2vh,20px)] flex items-center gap-3 font-type text-[clamp(11px,1.5vh,14px)] tracking-wider">
-                    <span className="w-[46%] shrink-0 whitespace-nowrap">PASSCODE</span>
+                    <span className="w-[46%] shrink-0 whitespace-nowrap uppercase">Passcode</span>
                     <input
                       type="password"
                       value={pass}

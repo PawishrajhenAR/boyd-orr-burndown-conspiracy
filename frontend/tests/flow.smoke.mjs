@@ -1,7 +1,9 @@
 ﻿import { chromium } from '@playwright/test'
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
-const browser = await chromium.launch({ channel: 'msedge', headless: true })
+// Defaults to Microsoft Edge; set BROWSER_PATH to any Chromium binary (e.g. on Linux CI) and FLOW_URL for another server.
+const browser = await chromium.launch(process.env.BROWSER_PATH ? { executablePath: process.env.BROWSER_PATH, headless: true } : { channel: 'msedge', headless: true })
+const FLOW_URL = process.env.FLOW_URL ?? 'http://127.0.0.1:5173/'
 const out = new URL('../artifacts/flow/', import.meta.url).pathname.replace(/^\/(.:)/, '$1')
 await mkdir(out, { recursive: true })
 try {
@@ -10,13 +12,17 @@ try {
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     await page.route('**/api/case', route => route.fulfill({ status: 503, body: 'offline' }))
-    await page.goto('http://127.0.0.1:5173/')
+    await page.goto(FLOW_URL)
     await page.getByRole('button', { name: 'Open the file' }).waitFor()
     await page.getByRole('button', { name: 'Open the file' }).click()
     await page.getByRole('alert').filter({ hasText: 'Access denied' }).waitFor()
     await page.getByRole('textbox', { name: 'Investigator ID' }).fill('investigator')
     await page.getByLabel('Passcode', { exact: true }).fill('bonfire1105')
     await page.getByRole('button', { name: 'Open the file' }).click()
+    // the opening briefing scene plays first; skip it here (it has its own coverage in e2e/smoke.py)
+    await page.getByRole('dialog', { name: 'Case briefing' }).waitFor()
+    await page.getByRole('button', { name: 'Skip scene ⏭' }).click()
+    await page.getByRole('dialog', { name: 'Case briefing' }).waitFor({ state: 'detached' })
     const nav = page.getByRole('navigation', { name: 'Investigation progress' })
     await nav.waitFor()
     for (const stage of ['Register', 'Level 1', 'Level 2', 'Movement', 'Closed']) {
@@ -41,7 +47,7 @@ try {
     await page.getByRole('button', { name: 'Mute sound', exact: true }).click()
     assert.equal(await page.evaluate(() => localStorage.getItem('investigation-flow-muted')), '1')
     assert.deepEqual(errors, [], 'browser runtime errors')
-    await page.goto('http://127.0.0.1:5173/?judge=1')
+    await page.goto(new URL('?judge=1', FLOW_URL).href)
     await nav.waitFor()
     assert.equal(await page.getByRole('button', { name: 'Open the file' }).count(), 0)
     await page.close()

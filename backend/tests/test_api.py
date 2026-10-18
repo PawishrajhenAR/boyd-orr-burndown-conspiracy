@@ -55,3 +55,18 @@ def test_building_lookup():
     r = client.get("/api/buildings/boyd-orr-building")
     assert r.status_code == 200
     assert "Boyd Orr" in r.json()["building"]["name"]
+
+
+def test_missing_data_degrades_to_503_without_crashing(tmp_path, monkeypatch):
+    """A deployment without data/raw or the sample must still start and answer clearly."""
+    import app.main as main
+
+    monkeypatch.setattr(main.settings, "RAW_DIR", tmp_path / "missing")
+    monkeypatch.setattr(main, "SAMPLE_CASE_PATH", tmp_path / "missing.json")
+    monkeypatch.setattr(main, "case_cache", None)
+
+    assert main.refresh_case() is None  # does not raise
+    assert client.get("/api/health").status_code == 200
+    r = client.get("/api/case")
+    assert r.status_code == 503
+    assert "RAW_DIR" in r.json()["detail"]

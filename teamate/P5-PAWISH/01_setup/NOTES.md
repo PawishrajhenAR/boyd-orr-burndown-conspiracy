@@ -1,7 +1,6 @@
 # Step 1 — Frontend host setup (local demo)
 
 **Who:** Pawish  
-**Cursor helped:** Yes — scaffolded a Vite + React + TS app so P5 charts can run before P3/P4 merge.
 
 ## Why
 

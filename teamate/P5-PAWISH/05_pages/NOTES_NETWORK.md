@@ -1,7 +1,6 @@
 # Network page — who met whom
 
 **Who:** Pawish  
-**Cursor helped:** Yes — implemented `NetworkPage` + viz helpers against `case.sample.json` / `case.json`.
 
 ## What was built
 

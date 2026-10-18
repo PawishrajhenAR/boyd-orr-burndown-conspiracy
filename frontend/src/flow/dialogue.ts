@@ -2,19 +2,43 @@ import type { Case } from '../types/case'
 // `.ts` extension so `node --test` can load this file directly (Vite accepts it too).
 import { RULE_LABEL, clock, conspirators, getShortlist, mastermind, type Shortlist } from './shortlist.ts'
 
-export type Speaker = 'morag' | 'ember'
+/** The cast and every expression sprite they have (public/characters/<character>/<expression>.webp). */
+export const EXPRESSIONS = {
+  mathew: ['thinking', 'explaining', 'examining', 'focus', 'aha', 'suspicious', 'determined', 'case-closed'],
+  morag: ['neutral', 'curious', 'worried', 'surprised', 'sceptical', 'pointing', 'relieved', 'salute'],
+} as const
+
+export type Character = keyof typeof EXPRESSIONS
+export type Expression<C extends Character = Character> = (typeof EXPRESSIONS)[C][number]
+export type Speaker = Character
 
 export const SPEAKERS: Record<Speaker, { name: string; role: string }> = {
+  mathew: { name: 'Inspector Mathew', role: 'Investigator' },
   morag: { name: 'PC Morag', role: 'Campus police' },
-  ember: { name: 'Inspector Mathew', role: 'Investigator' },
 }
 
-export type ReactionId = 'curious' | 'explaining' | 'discovery' | 'sceptical' | 'determined' | 'focused' | 'reassured' | 'resolved'
+export function spriteUrl<C extends Character>(character: C, expression: Expression<C>): string {
+  return `/characters/${character}/${expression}.webp`
+}
 
+export type ReactionId =
+  | 'curious'
+  | 'explaining'
+  | 'inspecting'
+  | 'discovery'
+  | 'sceptical'
+  | 'determined'
+  | 'focused'
+  | 'reassured'
+  | 'resolved'
+
+/** What both characters show for one beat: the speaker's expression and the listener's reaction. */
 export interface CharacterReaction {
-  mathew: string
-  morag: string
+  mathew: Expression<'mathew'>
+  morag: Expression<'morag'>
+  /** A reveal: aura flare, speed lines, sting. */
   impact?: boolean
+  /** A slow camera push-in on the speaker. */
   camera?: boolean
 }
 
@@ -28,6 +52,7 @@ export interface EvidenceCue {
 export const REACTIONS: Record<ReactionId, CharacterReaction> = {
   curious: { mathew: 'thinking', morag: 'curious' },
   explaining: { mathew: 'explaining', morag: 'curious' },
+  inspecting: { mathew: 'examining', morag: 'curious', camera: true },
   discovery: { mathew: 'aha', morag: 'surprised', impact: true, camera: true },
   sceptical: { mathew: 'suspicious', morag: 'sceptical' },
   determined: { mathew: 'determined', morag: 'pointing' },
@@ -44,7 +69,15 @@ export interface Line<S extends string = string> {
   text: string
   stage: S
   reaction: ReactionId
+  /** Per-line override of either character's expression (speaker or listener), on top of the reaction. */
+  expressions?: Partial<Pick<CharacterReaction, Character>>
   evidence?: EvidenceCue
+}
+
+/** The two sprites and effects to show for a line: reaction pair, then any per-line overrides. */
+export function stagingFor(line: Pick<Line, 'reaction' | 'expressions'> | undefined): CharacterReaction {
+  const base = (line && REACTIONS[line.reaction]) || FALLBACK_REACTION
+  return { ...base, ...line?.expressions }
 }
 
 export type Level1Stage = 'all' | 'rules' | 'breakers' | 'hold' | 'contacts' | 'collapse'
@@ -58,39 +91,40 @@ type Template<S extends string> = Line<S> & { when?: (v: ScriptVars) => boolean 
 
 const LEVEL1: Template<Level1Stage>[] = [
   { speaker: 'morag', stage: 'all', reaction: 'curious', text: "We've got {total} students on the logs. Where do we even start?" },
-  { speaker: 'ember', stage: 'rules', reaction: 'explaining', text: 'With the rules. Lecture once, no out-of-hours access, and their story must match the logs.' },
-  { speaker: 'ember', stage: 'breakers', reaction: 'discovery', text: '{n_breakers} students broke a rule: {rule_chips}.' },
+  { speaker: 'mathew', stage: 'rules', reaction: 'explaining', text: 'With the rules. Lecture once, no out-of-hours access, and their story must match the logs.' },
+  { speaker: 'mathew', stage: 'breakers', reaction: 'discovery', text: '{n_breakers} students broke a rule: {rule_chips}.' },
   { speaker: 'morag', stage: 'hold', reaction: 'curious', text: 'And the ones who look clean?' },
-  { speaker: 'ember', stage: 'contacts', reaction: 'sceptical', text: 'A clean record can hide a boss. Bring in the {n_contacts} who spent the most time with those {n_breakers}.' },
+  { speaker: 'mathew', stage: 'contacts', reaction: 'sceptical', text: 'A clean record can hide a boss. Bring in the {n_contacts} who spent the most time with those {n_breakers}.' },
   { speaker: 'morag', stage: 'collapse', reaction: 'determined', text: 'That leaves {shortlist}. Everyone else goes home.' },
 ]
 
 const LEVEL2: Template<Level2Stage>[] = [
-  { speaker: 'ember', stage: 'scores', reaction: 'explaining', text: 'Now we score them. Every kind of rule broken adds points: high 3, medium 2, low 1.' },
+  { speaker: 'mathew', stage: 'scores', reaction: 'explaining', text: 'Now we score them. Every kind of rule broken adds points: high 3, medium 2, low 1.' },
   { speaker: 'morag', stage: 'threshold', reaction: 'sceptical', text: "Who's above the line?" },
-  { speaker: 'ember', stage: 'six', reaction: 'discovery', text: 'The top {conspirator_count} with the strongest evidence: {six_names}.' },
+  { speaker: 'mathew', stage: 'six', reaction: 'discovery', text: 'The top {conspirator_count} with the strongest evidence: {six_names}.' },
   { speaker: 'morag', stage: 'suspicious', reaction: 'sceptical', text: 'And {seventh_name}?', when: (v) => !!v.seventh_name },
-  { speaker: 'ember', stage: 'suspicious', reaction: 'focused', text: 'Suspicious, but weaker evidence. We keep an eye on them.', when: (v) => !!v.seventh_name },
+  { speaker: 'mathew', stage: 'suspicious', reaction: 'focused', text: 'Suspicious, but weaker evidence. We keep an eye on them.', when: (v) => !!v.seventh_name },
 ]
 
 const LEVEL3: Template<Level3Stage>[] = [
   { speaker: 'morag', stage: 'play', reaction: 'focused', text: 'Six caught. Who gave the orders?' },
-  { speaker: 'ember', stage: 'analyse', reaction: 'focused', text: "The boss has a clean record. So let's watch who meets the six." },
-  { speaker: 'ember', stage: 'reveal', reaction: 'discovery', text: '{mastermind} met {k} of {six}. Same place, same time, every one of them.' },
+  { speaker: 'mathew', stage: 'analyse', reaction: 'inspecting', text: "The boss has a clean record. So let's watch who meets the six." },
+  { speaker: 'mathew', stage: 'reveal', reaction: 'discovery', when: (v) => v.k === v.six && v.six > 0, text: '{mastermind} met all {six}: in {meet_places} different buildings, from {first_meet} to {last_meet}.' },
+  { speaker: 'mathew', stage: 'reveal', reaction: 'sceptical', when: (v) => v.k !== v.six || v.six === 0, text: '{mastermind} met {k} of the {six}. Close, but not the whole team.' },
 ]
 
 /** Asides on the movement graph when the user rewinds time (not part of the main script). */
 const LEVEL3_REWIND: Template<Level3Stage> = { speaker: 'morag', stage: 'play', reaction: 'curious', text: "Oh wait — rewind. Let's watch that again." }
 const LEVEL3_REPLAYED: Template<Level3Stage> = {
-  speaker: 'ember',
+  speaker: 'mathew',
   stage: 'reveal',
   reaction: 'discovery',
-  text: 'There it is again: {mastermind} meets all {six}, one after another.',
+  text: 'There it is again: {mastermind} reaches all {six}, one meeting at a time, from {first_meet} to {last_meet}.',
 }
 
 const FINAL: Template<FinalStage>[] = [
   { speaker: 'morag', stage: 'closing', reaction: 'curious', text: 'Case closed?' },
-  { speaker: 'ember', stage: 'closed', reaction: 'resolved', text: 'Case closed. {mastermind}: clean on paper, but at the centre of everything.' },
+  { speaker: 'mathew', stage: 'closed', reaction: 'resolved', text: 'Case closed. {mastermind}: clean on paper, but at the centre of everything.' },
 ]
 
 export interface ScriptVars {
@@ -105,6 +139,10 @@ export interface ScriptVars {
   seventh_name: string
   mastermind: string
   k: number
+  /** Distinct buildings where the mastermind met conspirators, and the first / last of those meetings. */
+  meet_places: number
+  first_meet: string
+  last_meet: string
   /** Lowest score that still counts as suspicious (the "line" on Level 2). */
   threshold: number
 }
@@ -138,6 +176,10 @@ export function scriptVars(c: Case, shortlist: Shortlist = getShortlist(c)): Scr
       ).size
     : 0
   const flagged = c.suspects.filter((s) => s.verdict === 'conspirator' || s.verdict === 'suspicious')
+  const bossMeetings = boss
+    ? c.meetings.filter((m) => (m.a === boss.id && sixIds.has(m.b)) || (m.b === boss.id && sixIds.has(m.a)))
+    : []
+  const starts = bossMeetings.map((m) => m.start)
 
   return {
     total: c.students.length,
@@ -151,6 +193,9 @@ export function scriptVars(c: Case, shortlist: Shortlist = getShortlist(c)): Scr
     seventh_name: seventh ? (names.get(seventh.student_id) ?? '') : '',
     mastermind: boss?.name ?? 'Nobody',
     k: metSix,
+    meet_places: new Set(bossMeetings.map((m) => m.building_id)).size,
+    first_meet: starts.length ? clock(Math.min(...starts)) : '—',
+    last_meet: starts.length ? clock(Math.max(...starts)) : '—',
     threshold: flagged.length ? Math.min(...flagged.map((s) => s.score)) : 0,
   }
 }
@@ -165,7 +210,7 @@ export function fillTemplate(text: string, vars: ScriptVars): string {
 function fill<S extends string>(templates: Template<S>[], vars: ScriptVars): Line<S>[] {
   return templates
     .filter((t) => !t.when || t.when(vars))
-    .map(({ speaker, stage, text, reaction }) => ({ speaker, stage, text: fillTemplate(text, vars), reaction }))
+    .map(({ speaker, stage, text, reaction, expressions }) => ({ speaker, stage, text: fillTemplate(text, vars), reaction, expressions }))
 }
 
 function evidenceForLine<S extends string>(c: Case, line: Line<S>): EvidenceCue | undefined {
@@ -217,7 +262,7 @@ function evidenceForLine<S extends string>(c: Case, line: Line<S>): EvidenceCue 
     }
   }
 
-  if (line.stage === 'suspicious' && line.speaker === 'ember') {
+  if (line.stage === 'suspicious' && line.speaker === 'mathew') {
     const watch = c.suspects.filter((suspect) => suspect.verdict === 'suspicious').sort((a, b) => a.rank - b.rank)[0]
     const student = watch && c.students.find((person) => person.id === watch.student_id)
     if (!watch || !student) return undefined

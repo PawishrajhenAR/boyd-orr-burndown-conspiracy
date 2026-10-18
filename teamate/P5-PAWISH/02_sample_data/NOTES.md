@@ -1,7 +1,6 @@
 # Step 2 — Sample case data
 
 **Who:** Pawish  
-**Cursor helped:** Yes — generated `case.sample.json` from the P5 contract + reference conspirators.
 
 ## Purpose
 

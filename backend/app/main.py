@@ -1,4 +1,6 @@
 import json
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 import logging
 import re
 import tempfile
@@ -15,7 +17,15 @@ from app.models import Case
 
 logger = logging.getLogger(__name__)
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Prepare the cached case when the API starts (never fails startup; see refresh_case)."""
+    refresh_case()
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="Case File #1105 — The Boyd Orr Firework Plot",
     description=(
         "Investigate student movements, check alibis, inspect evidence, "
@@ -70,8 +80,13 @@ def generate_case(raw_dir: Path) -> Case:
     return build_case(clean, rule_config)
 
 
-def refresh_case() -> Case:
-    """Build a case from raw data, falling back to the sample if necessary."""
+def refresh_case() -> Case | None:
+    """Build a case from raw data, falling back to the sample if necessary.
+
+    Never raises: if neither the raw data nor the sample is available (e.g. a deployment
+    that only ships the backend folder), the API still starts and /api/case answers 503,
+    so the frontend falls back to its bundled case.json.
+    """
     global case_cache
 
     try:
@@ -83,21 +98,27 @@ def refresh_case() -> Case:
             "Loading the sample case instead.",
             exc_info=True,
         )
-        case_cache = load_sample_case()
+        try:
+            case_cache = load_sample_case()
+        except RuntimeError:
+            logger.error(
+                "No case data available (raw dir %s, sample %s). "
+                "Set RAW_DIR to the folder holding the four raw files.",
+                settings.RAW_DIR,
+                SAMPLE_CASE_PATH,
+            )
+            case_cache = None
 
     return case_cache
 
 
-@app.on_event("startup")
-def startup_event() -> None:
-    """Prepare the cached case when the API starts."""
-    refresh_case()
-
-
 def get_case() -> Case:
-    """Return the cached case, ensuring one is available."""
-    if case_cache is None:
-        return refresh_case()
+    """Return the cached case, ensuring one is available (503 if no data exists on this server)."""
+    if case_cache is None and refresh_case() is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Case data is not available on this server. Set RAW_DIR to the raw data folder.",
+        )
 
     return case_cache
 

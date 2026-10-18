@@ -1,27 +1,28 @@
-import { useEffect, type ReactNode } from 'react'
+import { Suspense, lazy, useEffect, type ReactNode } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import InvestigationFlow from './flow/InvestigationFlow'
 import legacyStyles from './index.css?url'
 import { useCaseStore } from './store/useCaseStore'
 import { NavRail } from './components/game/GameKit'
 import { playGameSound } from './components/game/audio'
-import TitlePage from './pages/TitlePage'
-import RegisterPage from './pages/RegisterPage'
-import FirstSweepPage from './pages/FirstSweepPage'
-import SuspectReviewPage from './pages/SuspectReviewPage'
-import MovementEvidencePage from './pages/MovementEvidencePage'
-import ResultsPage from './pages/ResultsPage'
-import BriefingPage from './pages/BriefingPage'
-import EvidencePage from './pages/EvidencePage'
-import BoardPage from './pages/BoardPage'
-import InterrogationPage from './pages/InterrogationPage'
-import HQPage from './pages/HQPage'
-import AccusePage from './pages/AccusePage'
-import CaseClosedPage from './pages/CaseClosedPage'
-import MapPage from './pages/MapPage'
-import TimelinePage from './pages/TimelinePage'
-import NetworkPage from './pages/NetworkPage'
-import VizLabPage from './pages/VizLabPage'
+// Legacy / classic pages are code-split: the main investigation at `/` never downloads them.
+const TitlePage = lazy(() => import('./pages/TitlePage'))
+const RegisterPage = lazy(() => import('./pages/RegisterPage'))
+const FirstSweepPage = lazy(() => import('./pages/FirstSweepPage'))
+const SuspectReviewPage = lazy(() => import('./pages/SuspectReviewPage'))
+const MovementEvidencePage = lazy(() => import('./pages/MovementEvidencePage'))
+const ResultsPage = lazy(() => import('./pages/ResultsPage'))
+const BriefingPage = lazy(() => import('./pages/BriefingPage'))
+const EvidencePage = lazy(() => import('./pages/EvidencePage'))
+const BoardPage = lazy(() => import('./pages/BoardPage'))
+const InterrogationPage = lazy(() => import('./pages/InterrogationPage'))
+const HQPage = lazy(() => import('./pages/HQPage'))
+const AccusePage = lazy(() => import('./pages/AccusePage'))
+const CaseClosedPage = lazy(() => import('./pages/CaseClosedPage'))
+const MapPage = lazy(() => import('./pages/MapPage'))
+const TimelinePage = lazy(() => import('./pages/TimelinePage'))
+const NetworkPage = lazy(() => import('./pages/NetworkPage'))
+const VizLabPage = lazy(() => import('./pages/VizLabPage'))
 
 function GameRoute({ children }: { children: ReactNode }) {
   return <><NavRail />{children}</>
@@ -52,7 +53,7 @@ export default function App() {
     document.addEventListener('pointerdown', onPress)
     return () => document.removeEventListener('pointerdown', onPress)
   }, [pathname])
-  return <div className="app-shell"><Routes>
+  return <div className="app-shell"><Suspense fallback={<div className="page">Loading…</div>}><Routes>
     <Route path="/" element={<InvestigationFlow />} />
     <Route path="/classic" element={<TitlePage />} />
     <Route path="/register" element={<GameRoute><RegisterPage /></GameRoute>} />
@@ -71,5 +72,5 @@ export default function App() {
     <Route path="/lab" element={<GameRoute><VizLabPage /></GameRoute>} />
     <Route path="/accuse" element={<GameRoute><AccusePage /></GameRoute>} />
     <Route path="/closed" element={<GameRoute><CaseClosedPage /></GameRoute>} />
-  </Routes></div>
+  </Routes></Suspense></div>
 }

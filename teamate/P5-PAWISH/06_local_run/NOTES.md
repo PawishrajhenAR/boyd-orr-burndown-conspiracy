@@ -1,7 +1,6 @@
 # Step 6 — Local run
 
 **Who:** Pawish  
-**Cursor helped:** Yes — `npm run build` then `npm run dev`.
 
 ## Commands
 
@@ -27,7 +26,3 @@ npm run dev -- --host 127.0.0.1 --port 5173
 ## Policy
 
 **Do not push to `main` yet.** Everyone finishes their role locally; team integrates later, then one push.
-
-## Cursor + Pawish credit
-
-Implemented by **Pawish** (P5) with **Cursor** multi-agent assistance. Prompt recorded in `teamate/P5-PAWISH/00_prompt/`.

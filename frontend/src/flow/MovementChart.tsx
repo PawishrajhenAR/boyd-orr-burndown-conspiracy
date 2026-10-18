@@ -454,16 +454,35 @@ export default function MovementChart({ c, active, reducedMotion, onNext, shortl
     // "now" line
     g.append('line').attr('class', 'now-line').attr('y1', -6).attr('y2', innerH).attr('stroke', COLOUR.gold).attr('stroke-width', 2)
 
-    // gold rings at the mastermind's first meeting with each conspirator (shown during the analysis)
+    // gold rings at the mastermind's first meeting with each conspirator (shown during the analysis).
+    // Meetings at the same place and time (e.g. two conspirators at 10:00 in one lecture) would sit on top of
+    // each other, so rings in the same spot are fanned out vertically and each one is labelled with a name.
     const bossOffset = series.find((s) => s.student.id === boss)?.offset ?? 0
-    bossMeetings.forEach((m, i) => {
-      const ring = g.append('g').attr('class', 'meeting-ring').attr('data-i', i).attr('opacity', 0)
-      const cx = x(m.start)
-      const cy = yOf(m.building_id, bossOffset)
-      ring.append('circle').attr('cx', cx).attr('cy', cy).attr('r', 8).attr('fill', 'none').attr('stroke', COLOUR.gold).attr('stroke-width', 3)
-      ring.append('circle').attr('class', 'gold-ring').attr('cx', cx).attr('cy', cy).attr('r', 8).attr('fill', 'none').attr('stroke', COLOUR.gold).attr('stroke-width', 2)
-      ring.append('title').text(`${nameOf.get(m.a === boss ? m.b : m.a)} · ${placeName.get(m.building_id)} · ${clock(m.start)}`)
-    })
+    const sameSpot = d3.group(bossMeetings.map((m, i) => ({ m, i })), ({ m }) => `${m.building_id}@${m.start}`)
+    const RING_GAP = 17
+    for (const group of sameSpot.values()) {
+      group.forEach(({ m, i }, k) => {
+        const ring = g.append('g').attr('class', 'meeting-ring').attr('data-i', i).attr('opacity', 0)
+        const cx = x(m.start)
+        const cy = yOf(m.building_id, bossOffset) + (k - (group.length - 1) / 2) * RING_GAP
+        const who = nameOf.get(m.a === boss ? m.b : m.a) ?? ''
+        ring.append('circle').attr('cx', cx).attr('cy', cy).attr('r', 8).attr('fill', 'none').attr('stroke', COLOUR.gold).attr('stroke-width', 3)
+        ring.append('circle').attr('class', 'gold-ring').attr('cx', cx).attr('cy', cy).attr('r', 8).attr('fill', 'none').attr('stroke', COLOUR.gold).attr('stroke-width', 2)
+        ring
+          .append('text')
+          .attr('class', 'meeting-ring__label')
+          .attr('x', cx + 12)
+          .attr('y', cy + 4)
+          .attr('font-size', 10)
+          .attr('font-weight', 600)
+          .attr('fill', '#1d1a17')
+          .attr('stroke', '#efe6d2')
+          .attr('stroke-width', 3)
+          .attr('paint-order', 'stroke')
+          .text(who.split(' ')[0])
+        ring.append('title').text(`${who} · ${placeName.get(m.building_id)} · ${clock(m.start)}`)
+      })
+    }
 
     applyReveal(0)
   }, [size, rows, series, bossMeetings, tMin, tMax, boss, placeName, nameOf, applyReveal])

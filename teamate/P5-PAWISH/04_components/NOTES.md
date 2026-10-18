@@ -1,7 +1,6 @@
 # Step 4 — Viz components (P5)
 
 **Who:** Pawish  
-**Cursor helped:** Yes — built the full `frontend/src/components/viz/` kit against the data contract + Zustand store.
 
 ## What was built
 

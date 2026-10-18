@@ -1,6 +1,6 @@
 # Teammate worklogs
 
-Each person keeps a worklog folder here (prompt used + steps), same pattern as P5:
+Each person keeps a worklog folder here, following the same pattern:
 
 ```
 teamate/

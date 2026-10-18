@@ -1,7 +1,6 @@
 # Step 3 — Viz utilities
 
 **Who:** Pawish  
-**Cursor helped:** Yes — multi-agent wrote `frontend/src/components/viz/util.ts`.
 
 ## Exports
 

@@ -4,15 +4,12 @@
 **Person:** Pawish (Person 5)  
 **Role:** Visualisation Developer (D3 + React + MapLibre/Leaflet)  
 **Branch:** `P5-PAWISH`  
-**Tooling:** Cursor AI coding agent (multi-agent) helped implement this work  
-
 ## How to use this folder
 
-Each numbered subfolder is one step. Read `NOTES.md` inside for what was done, why, and what Cursor helped with.
+Each numbered subfolder records a step and its implementation notes.
 
 | Step | Folder | What |
 |------|--------|------|
-| 0 | `00_prompt/` | The exact P5 prompt + design reference used |
 | 1 | `01_setup/` | Frontend host scaffold so viz can run locally |
 | 2 | `02_sample_data/` | `case.sample.json` for charts before real H12 data |
 | 3 | `03_viz_utils/` | Shared D3 helpers (`util.ts`) |
@@ -23,13 +20,17 @@ Each numbered subfolder is one step. Read `NOTES.md` inside for what was done, w
 | 8 | `08_satellite_map/` | Real Gilmorehill **satellite** map — MapLibre 3D + Leaflet ISO fallback |
 | 9 | `09_playwright_report/` | Full Playwright suite — **PASS 9/9** |
 
-## Owns (from prompt)
+## P5 visualization files
 
 - `frontend/src/components/viz/*` (incl. `CampusMapFallback.tsx`)
 - `frontend/src/pages/MapPage.tsx`
 - `frontend/src/pages/TimelinePage.tsx`
 - `frontend/src/pages/NetworkPage.tsx`
 - `frontend/src/pages/VizLabPage.tsx` (local acceptance harness)
+
+## Presentation
+
+- `P5_FRONTEND_PRESENTATION.pptx` explains the P5 visualization work and includes a demo talk track and judge Q&A.
 
 ## Run
 

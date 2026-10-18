@@ -125,46 +125,92 @@ body,
   justify-self: center;
   padding-bottom: 10px;
 }
-.comic-character {
-  min-width: 0;
-}
-.conversation-character {
+.comic-character { min-width: 0; height: clamp(150px, 23vh, 250px); }
+
+/* ---------- cast: sprite, aura, speaker/listener lighting (JJK-inspired, restrained) ---------- */
+.cast-sprite {
+  --aura-a: #e05252;
+  --aura-b: #b3121b;
   position: relative;
   z-index: 1;
   display: flex;
-  height: clamp(132px, 19vh, 206px);
   min-width: 0;
   align-items: flex-end;
   justify-content: center;
-  overflow: hidden;
-  filter: saturate(0.87) drop-shadow(0 10px 18px #0009);
   transform-origin: center bottom;
-  transition: filter 260ms ease;
 }
-.conversation-character.is-speaking {
-  filter: saturate(1.04) drop-shadow(0 0 17px #f4b94235) drop-shadow(0 10px 18px #0009);
+.cast-sprite--morag { --aura-a: #8fb8ff; --aura-b: #2b4fd8; }
+.cast-body {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  transition: filter 320ms ease, transform 320ms ease;
 }
-.conversation-character img {
+.cast-body img {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
   object-position: center bottom;
+  /* the sheets crop at the waist and the shoulders: fade those straight cut edges into the scene */
+  mask-image: linear-gradient(to top, transparent 0, #000 16%), linear-gradient(to right, transparent 0, #000 9%, #000 91%, transparent 100%);
+  mask-composite: intersect;
+  -webkit-mask-image: linear-gradient(to top, transparent 0, #000 16%), linear-gradient(to right, transparent 0, #000 9%, #000 91%, transparent 100%);
+  -webkit-mask-composite: source-in;
 }
-.conversation-character--mathew img { transform: scale(1.04); }
-.conversation-character--morag img { transform: scale(1.02); }
-.conversation-character__fallback {
+.cast-sprite.is-listening .cast-body { filter: brightness(0.5) saturate(0.7) drop-shadow(0 10px 18px #0009); transform: scale(0.95); }
+.cast-sprite.is-speaking .cast-body {
+  filter: brightness(1.04) saturate(1.05) drop-shadow(0 0 12px color-mix(in srgb, var(--aura-a) 38%, transparent)) drop-shadow(0 12px 20px #000a);
+  transform: scale(1.02);
+}
+.cast-aura {
+  position: absolute;
+  z-index: 0;
+  inset: 12% 6% 0;
+  border-radius: 46% 46% 30% 30%;
+  /* a static backlight: Mathew red, Morag blue — no rotation, no pulsing */
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--aura-a) 60%, transparent), color-mix(in srgb, var(--aura-b) 35%, transparent) 55%, transparent 80%);
+  filter: blur(18px);
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 420ms ease, transform 420ms ease;
+  pointer-events: none;
+}
+.cast-sprite.is-speaking .cast-aura { opacity: 0.45; transform: scale(1); }
+.cast-sprite.is-impact .cast-aura { opacity: 0.7; }
+.cast-fallback {
   display: grid;
   width: 74px;
   height: 96px;
+  margin: auto auto 0;
   place-items: center;
   border: 1px solid #f4b94255;
   border-radius: 44% 44% 8px 8px;
   background: #1d1a17;
-  color: var(--comic-gold);
+  color: var(--comic-gold, #f4b942);
   font-family: var(--font-type);
   font-size: 2.4rem;
 }
+
+/* reveal beat: radial speed lines + a brief flash behind the dialogue box */
+.impact-burst {
+  position: absolute;
+  z-index: 0;
+  inset: -30% 10%;
+  background: repeating-conic-gradient(from 0deg, #fff8ec22 0 1.2deg, transparent 1.2deg 9deg);
+  mask-image: radial-gradient(closest-side, transparent 28%, #000 46%, transparent 78%);
+  -webkit-mask-image: radial-gradient(closest-side, transparent 28%, #000 46%, transparent 78%);
+  opacity: 0;
+  animation: impact-burst 900ms ease-out;
+  pointer-events: none;
+}
+@keyframes impact-burst { 0% { opacity: 0; scale: 0.8; } 18% { opacity: 1; } 100% { opacity: 0; scale: 1.15; } }
+.comic-conversation.is-focus .cast-sprite.is-speaking .cast-body { transform: scale(1.06); transition-duration: 1.4s; }
+
 .comic-dialogue {
   position: relative;
   overflow: hidden;
@@ -311,7 +357,7 @@ body,
     min-height: 172px;
     padding: 6px 4px 0;
   }
-  .conversation-character { height: 118px; }
+  .comic-character { height: 118px; }
   .comic-conversation__center { padding-bottom: 5px; }
   .comic-dialogue { border-radius: 10px 10px 10px 3px; padding: 10px 11px; }
   .comic-dialogue__role { font-size: 0.56rem; }
@@ -330,12 +376,13 @@ body,
 }
 @media (max-width: 380px) {
   .comic-conversation { grid-template-columns: 36px minmax(0, 1fr) 36px; }
-  .conversation-character { height: 100px; }
+  .comic-character { height: 100px; }
   .comic-progress span { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .comic-dialogue__caret { animation: none; }
-  .conversation-character, .comic-control { transition: none; }
+  .cast-body, .cast-aura, .comic-control { transition: none; }
+  .impact-burst { display: none; }
 }
 
 .case-dossier { display: none; }
@@ -398,4 +445,123 @@ body,
   .dossier-oddities li strong { font-size: 7.3pt; }
   .dossier-oddities li span { color: #62594e; font-size: 6.7pt; }
   .dossier-footer { display: flex; justify-content: space-between; gap: 5mm; margin-top: 4mm; border-top: 1pt solid #332920; padding-top: 2mm; color: #71675c; font: 6pt 'JetBrains Mono', monospace; break-inside: avoid; }
+}
+
+/* ---------- briefing scene (full-screen cinematic) ---------- */
+.briefing-scene {
+  position: fixed;
+  z-index: 45;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(ellipse 60% 70% at 50% 18%, #2a2018 0%, #0b0907 55%, #000 100%);
+  color: var(--color-paper);
+  cursor: pointer;
+  user-select: none;
+}
+.briefing-bar { position: absolute; z-index: 5; left: 0; right: 0; height: 7vh; background: #000; }
+.briefing-bar--top { top: 0; transform-origin: top; }
+.briefing-bar--bottom { bottom: 0; transform-origin: bottom; }
+.briefing-location {
+  position: absolute;
+  z-index: 6;
+  top: calc(7vh + 14px);
+  left: clamp(16px, 4vw, 56px);
+  margin: 0;
+  color: #f4b942cc;
+  font: 600 0.72rem var(--font-mono);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+.briefing-skip {
+  position: absolute;
+  z-index: 6;
+  top: calc(7vh + 8px);
+  right: clamp(60px, 5vw, 76px);
+  border: 1px solid #efe6d233;
+  border-radius: 5px;
+  background: #0008;
+  padding: 6px 11px;
+  color: #efe6d2cc;
+  font: 600 0.72rem var(--font-sans);
+  cursor: pointer;
+}
+.briefing-skip:hover { border-color: #f4b94299; color: #fff8ec; }
+.briefing-skip:focus-visible { outline: 2px solid #f4b942; outline-offset: 3px; }
+.briefing-stage { position: absolute; inset: 0; transform-origin: 50% 70%; }
+.briefing-spot {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 30% 55% at 22% 64%, #f4b9421c, transparent 70%),
+    radial-gradient(ellipse 30% 55% at 78% 64%, #8fb8ff16, transparent 70%);
+  pointer-events: none;
+}
+.briefing-burst { inset: 10% 20% 30%; }
+.briefing-actor {
+  position: absolute;
+  bottom: calc(7vh + clamp(118px, 16vh, 150px));
+  width: min(40vw, 62vh);
+  aspect-ratio: 410 / 418;
+}
+.briefing-actor .cast-sprite { width: 100%; height: 100%; }
+.briefing-actor--mathew { left: 4vw; }
+.briefing-actor--morag { right: 4vw; }
+.briefing-box {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: calc(7vh + 18px);
+  width: min(880px, calc(100vw - 32px));
+  translate: -50% 0;
+  border: 1px solid #f4b94280;
+  border-radius: 4px 16px 16px 16px;
+  background: linear-gradient(160deg, #1d1712f7, #0d0b09f7);
+  box-shadow: 0 24px 60px #000c, inset 0 1px #fff1;
+  padding: 26px 28px 20px;
+}
+.briefing-box--morag { border-color: #8fb8ff70; }
+.briefing-box.is-impact { box-shadow: 0 0 0 1px #f4b94255, 0 0 46px #f4b94233, 0 24px 60px #000c; }
+.briefing-box__plate {
+  position: absolute;
+  top: -15px;
+  left: 18px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  transform: skewX(-10deg);
+  background: #f4b942;
+  padding: 5px 16px;
+  color: #1d1a17;
+  box-shadow: 0 6px 16px #0008;
+}
+.briefing-box--morag .briefing-box__plate { background: #c7d6ef; }
+.briefing-box__plate > span { display: inline-block; transform: skewX(10deg); }
+.briefing-box__name { font: 1.02rem var(--font-type); letter-spacing: 0.06em; }
+.briefing-box__role { font: 600 0.62rem var(--font-sans); letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.75; }
+.briefing-box__text { min-height: 3.1em; margin: 0; color: #fff8ec; font-size: clamp(1rem, 1.6vw, 1.22rem); line-height: 1.55; }
+.briefing-box__next { position: absolute; right: 18px; bottom: 10px; color: #f4b942; font-size: 0.8rem; animation: briefing-nudge 1s ease-in-out infinite; }
+@keyframes briefing-nudge { 50% { translate: 0 3px; opacity: 0.55; } }
+.briefing-box__count { position: absolute; top: 8px; right: 16px; color: #efe6d266; font: 0.62rem var(--font-mono); letter-spacing: 0.1em; }
+.briefing-help {
+  position: absolute;
+  z-index: 6;
+  bottom: calc(7vh - 26px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  color: #efe6d266;
+  font: 0.62rem var(--font-mono);
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+@media (max-width: 700px) {
+  .briefing-actor { width: 64vw; bottom: calc(7vh + 150px); }
+  .briefing-actor--mathew { left: -10vw; }
+  .briefing-actor--morag { right: -10vw; }
+  .briefing-box { padding: 20px 16px 16px; }
+  .briefing-location { top: calc(7vh + 52px); right: 16px; font-size: 0.56rem; letter-spacing: 0.16em; line-height: 1.6; }
+  .briefing-help { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .briefing-box__next { animation: none; }
 }

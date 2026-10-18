@@ -3,6 +3,7 @@ import { useReducedMotion } from 'framer-motion'
 import { loadCase } from '../api/client'
 import type { Case } from '../types/case'
 import Background from './Background'
+import BriefingScene from './BriefingScene'
 import { buildScripts } from './dialogue'
 import CaseFileLogin from './CaseFileLogin'
 import FinalResult from './FinalResult'
@@ -55,6 +56,8 @@ export default function InvestigationFlow() {
   const seen = useRef(new Set<number>())
   // Pages whose title card has been triggered (state, so the "active" check re-renders).
   const [introduced, setIntroduced] = useState<number[]>([])
+  /** The opening briefing scene plays once, right after the case file opens (skipped in judge mode). */
+  const [briefing, setBriefing] = useState(false)
   const scroller = useRef<HTMLDivElement>(null)
   const sections = useRef(new Map<number, HTMLElement>())
   const programmatic = useRef(0)
@@ -98,11 +101,11 @@ export default function InvestigationFlow() {
 
   // Show the title card the first time each page is reached.
   useEffect(() => {
-    if (!c || step === 0 || seen.current.has(step)) return
+    if (!c || step === 0 || briefing || seen.current.has(step)) return
     seen.current.add(step)
     setIntroduced((prev) => [...prev, step])
     if (!judge) setTitle(titleFor(step))
-  }, [step, c, judge, titleFor])
+  }, [step, c, judge, titleFor, briefing])
 
   const goTo = useCallback(
     (s: number) => {
@@ -153,7 +156,9 @@ export default function InvestigationFlow() {
   const unlock = () => {
     setUnlocked(true)
     setStep(1)
+    if (!judge) setBriefing(true)
   }
+  const endBriefing = useCallback(() => setBriefing(false), [])
 
   const replay = () => {
     seen.current.clear()
@@ -177,7 +182,7 @@ export default function InvestigationFlow() {
   }
 
   // A page is active once its title card has been shown and closed (judge mode has no title cards).
-  const pageActive = (s: number) => step === s && !title && introduced.includes(s)
+  const pageActive = (s: number) => step === s && !title && !briefing && introduced.includes(s)
   const ref = (s: number) => (el: HTMLElement | null) => {
     if (el) sections.current.set(s, el)
     else sections.current.delete(s)
@@ -238,6 +243,7 @@ export default function InvestigationFlow() {
         )}
       </div>
 
+      {briefing && <BriefingScene c={c} reducedMotion={reducedMotion} onDone={endBriefing} />}
       <TitleCard text={title} duration={1500} reducedMotion={reducedMotion} onDone={closeTitle} />
     </>
   )

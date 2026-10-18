@@ -89,8 +89,38 @@ with sync_playwright() as p:
     check("wrong credentials -> Access denied + buzz", page.locator("text=Access denied").is_visible() and "buzz" in sfx(page), sfx(page))
     page.fill("input >> nth=1", PASSCODE)
     page.click("text=Open the file")
-    page.wait_for_selector("section[data-step='1'] h2:text-is('The Register')", timeout=10000)
+
+    # ---------- Briefing scene: cast, one linear conversation, hand-over ----------
+    page.wait_for_selector("[aria-label='Case briefing']", timeout=10000)
     check("file opens: stamp, string slide, page turn", "stamp" in sfx(page) and "slide" in sfx(page) and "pageturn" in sfx(page), sfx(page))
+    time.sleep(1.2)
+    brief = page.locator("[aria-label='Case briefing']")
+    check("briefing: both characters on stage + location", brief.locator(".cast-sprite").count() == 2 and "case file #1105" in brief.locator(".briefing-location").inner_text().lower())
+    def advance_until(cond, limit=40):
+        for _ in range(limit):
+            if cond():
+                return True
+            page.keyboard.press("Enter")
+            time.sleep(0.35)
+        return cond()
+    seen_text = []
+    def gone():
+        if page.locator("[aria-label='Case briefing']").count() == 0:
+            return True
+        seen_text.append(brief.locator(".briefing-box__text").inner_text())
+        return False
+    lines_total = int(brief.locator(".briefing-box__count").inner_text().split("/")[1])
+    choices_seen = []
+    def gone_and_watch():
+        if page.locator("[aria-label='Case briefing']").count():
+            choices_seen.append(brief.locator(".briefing-choice").count())
+        return gone()
+    advance_until(gone_and_watch, limit=lines_total * 3 + 6)
+    no_choices = sum(choices_seen) == 0
+    check("briefing: one linear conversation, no choices", no_choices and lines_total >= 6, lines_total)
+    check("briefing: lines are filled from the case data", any(f"{len(case['visits'])} door swipes" in x for x in seen_text), seen_text[-3:])
+    page.wait_for_selector("section[data-step='1'] h2:text-is('The Register')", timeout=10000)
+    check("briefing hands over to the register", page.locator("[aria-label='Case briefing']").count() == 0)
     check("case source", sources[:1] == ["/api/case"] if EXPECT_API else bool(sources), sources)
 
     # ---------- Page 1: register + auto-flip wave ----------
@@ -114,15 +144,19 @@ with sync_playwright() as p:
     sec2 = page.locator("section[data-step='2']")
     check("page turn sound", "pageturn" in sfx(page))
     sec2.get_by_role("button", name="Auto").click()  # pause auto-play
+    page.mouse.click(5, H // 2)  # move focus off the button: Space on a focused button presses that button
     h2 = sec2.locator("h2")
     t_before = h2.inner_text()
-    time.sleep(3.2)
+    time.sleep(4.2)
     check("level 1 waits for the dialogue (auto off)", h2.inner_text() == t_before, (t_before, h2.inner_text()))
-    page.keyboard.press("Space")  # rules
-    page.keyboard.press("Space")  # breakers
+    progress = sec2.locator(".comic-progress")
+    for _ in range(8):  # first Space finishes the typing, the next advances
+        if progress.inner_text().startswith("3 /"):
+            break
+        page.keyboard.press("Space"); time.sleep(0.5)
     time.sleep(0.6)
     check("Space advances the dialogue → red stage", "rule" in h2.inner_text().lower() and "whoosh" in sfx(page), h2.inner_text())
-    check("dialogue blips", "blip" in sfx(page))
+    check("speaker change is voiced (swish) and the speaker is lit", "swish" in sfx(page) and sec2.locator(".cast-sprite.is-speaking").count() == 1)
     check("basis: rule-breakers before → after", basis_has(sec2, total, sum(1 for s in case["suspects"] if s["score"] > 0)))
     shot(page, "2a-breakers")
     sec2.get_by_role("button", name="Skip ⏭").click()
@@ -172,6 +206,10 @@ with sync_playwright() as p:
     rings = page.eval_on_selector_all("g.meeting-ring", "els => els.filter(e => e.getAttribute('opacity') === '1').length")
     counter = sec4.locator("[data-testid='meeting-counter']").inner_text()
     check("6 gold meeting pulses, counter 6", rings == len(six) and counter.strip().endswith(f"{len(six)} / {len(six)}"), (rings, counter))
+    centres = page.eval_on_selector_all("g.meeting-ring", "els => els.map(e => { const r = e.querySelector('circle').getBoundingClientRect(); return [Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2)] })")
+    apart = all(((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5 >= 14 for i, a in enumerate(centres) for b in centres[i + 1:])
+    check("every meeting ring is visible on its own (none stacked)", len(centres) == len(six) and apart, centres)
+    check("reveal line states real places and times", "same place" not in sec4.locator(".comic-dialogue__text").inner_text().lower())
     check("node ticks + one heartbeat per meeting", "nodetick" in sfx(page) and sfx(page).count("heartbeat") == len(six), sfx(page).count("heartbeat"))
     page.hover(f"circle.node[data-id='{boss_id}'] >> nth=0")
     time.sleep(0.3)

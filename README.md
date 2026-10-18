@@ -4,14 +4,6 @@ GUTS / SAS hackathon case: find **6 conspirators** and **1 mastermind** in messy
 
 Repo: https://github.com/PawishrajhenAR/boyd-orr-burndown-conspiracy
 
-Local folder should be named **`boyd-orr-burndown-conspiracy`** (same as GitHub).  
-If yours is still `SaSProject`, run once in a normal terminal (not inside this chat):
-
-```bash
-mv ~/Projects/SaSProject ~/Projects/boyd-orr-burndown-conspiracy
-# then reopen Cursor on that folder (or the .code-workspace file)
-```
-
 ## Quick start
 
 ```bash
@@ -19,30 +11,27 @@ git clone https://github.com/PawishrajhenAR/boyd-orr-burndown-conspiracy.git
 cd boyd-orr-burndown-conspiracy
 ```
 
-1. Read [`prompts/00_START_HERE.md`](prompts/00_START_HERE.md) (5 minutes).
-2. Paste **your** role prompt into your AI agent (whole file).
-3. Attach [`docs/design_reference.png`](docs/design_reference.png) if the tool accepts images.
-4. Only edit files you own — see [`OWNERS.md`](OWNERS.md).
-5. Messages to send teammates: [`prompts/SEND_TO_TEAMMATES.md`](prompts/SEND_TO_TEAMMATES.md).
+1. Review [`OWNERS.md`](OWNERS.md) before changing shared code.
+2. Use [`docs/design_reference.png`](docs/design_reference.png) as the visual target.
+3. Keep raw challenge files in `data/raw/` and coordinate cross-role changes with the owner.
 
-| Role | Prompt | Owns |
-|------|--------|------|
-| P1 Data Engineer | [`prompts/PROMPT_1_Data_Engineer.md`](prompts/PROMPT_1_Data_Engineer.md) | `backend/app/pipeline/*` |
-| P2 Detective Analyst | [`prompts/PROMPT_2_Detective_Analyst.md`](prompts/PROMPT_2_Detective_Analyst.md) | `backend/app/analysis/*` |
-| P3 Backend & Integration | [`prompts/PROMPT_3_Backend_Lead.md`](prompts/PROMPT_3_Backend_Lead.md) | API, contract, export |
-| P4 Front-end Game Lead | [`prompts/PROMPT_4_Front_end_Lead.md`](prompts/PROMPT_4_Front_end_Lead.md) | React shell, game pages |
-| P5 Visualisation | [`prompts/PROMPT_5_Visualisation_Developer.md`](prompts/PROMPT_5_Visualisation_Developer.md) | D3 viz + Map/Timeline/Network |
+| Role | Owns |
+|------|------|
+| P1 Data Engineer | `backend/app/pipeline/*` |
+| P2 Detective Analyst | `backend/app/analysis/*` |
+| P3 Backend & Integration | API, contract, export |
+| P4 Front-end Game Lead | React shell, game pages |
+| P5 Visualisation | D3 viz + Map/Timeline/Network |
 
-## Repo layout (matches the prompts)
+## Repo layout
 
 ```
-├── README.md / AGENTS.md / OWNERS.md
-├── prompts/                  role prompts + SEND_TO_TEAMMATES.md
+├── README.md / OWNERS.md
 ├── data/raw/                 challenge CSVs + statements
 ├── docs/                     design_reference.png + challenge-brief.pdf
 ├── backend/                  P3 glue · P1 pipeline · P2 analysis (stubs ready)
 ├── frontend/                 Vite app (P5 viz live; P4 game pages stubbed)
-└── teamate/                  per-person worklogs (P5-PAWISH done)
+└── teamate/                  per-person worklogs and presentation materials
 ```
 
 ### Run viz (P5)
@@ -59,6 +48,17 @@ Open http://localhost:5173/ — Map · Timeline · Network.
 cd backend && pip install -r requirements.txt
 # uvicorn app.main:app --reload --port 8000
 ```
+
+## Deploy on Vercel
+
+The repository is configured as one Vercel project with two services: the frontend is public at `/`, and the FastAPI backend is public at `/api/*`.
+
+1. Import this Git repository into Vercel and keep the project root set to `.` so it can read the root `vercel.json`.
+2. In **Project Settings → Build and Deployment**, set the **Framework Preset** to **Services**. Vercel requires this setting as well as the `services` block in `vercel.json`.
+3. Leave the service roots and build settings in `vercel.json`; do not add a top-level build command or output directory.
+4. Deploy the project. The frontend calls the backend through same-origin `/api` URLs, so no API URL environment variable or service binding is required.
+
+For local Vercel routing, install Python 3.12 and run `npx vercel dev -L` from the repository root. For a linked Vercel project, deploy with `npx vercel --prod`.
 
 ## Git
 

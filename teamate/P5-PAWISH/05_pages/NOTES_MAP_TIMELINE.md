@@ -41,6 +41,3 @@ cd frontend && npm run dev
 ```
 
 Open `/map` and `/timeline` against `public/case.sample.json` (API fallback). Scrub the slider; click buildings/students; brush the timeline zoom strip.
-
-## Cursor help
-Multi-agent / Composer session implemented both pages against the P5 prompt + shared Case store helpers.
