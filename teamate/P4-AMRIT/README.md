@@ -16,3 +16,7 @@
 - P4 game pages: Title, Briefing, Evidence, Board, Interrogation, HQ, Accuse, and Case Closed
 
 P5 visualisation files remain owned by P5. P4 mounts those existing components in their designated game pages without editing them.
+
+## Gradual SaSProject alignment
+
+- Batch 1: [shared dark theme and title-page cleanup](04_theme_alignment/NOTES.md).
