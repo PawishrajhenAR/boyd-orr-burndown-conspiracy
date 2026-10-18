@@ -19,7 +19,7 @@ export default function TitlePage() {
         </h1>
         <p>One day of swipes. Six conspirators. One clean mastermind.</p>
         <div className="action-row">
-          <Button onClick={() => go('/briefing')}>Start case</Button>
+          <Button onClick={() => go('/register')}>Start case</Button>
           <Button
             onClick={() => {
               setJudge(true)

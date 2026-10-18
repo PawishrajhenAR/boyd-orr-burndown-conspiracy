@@ -4,6 +4,7 @@ import { useCaseStore } from './store/useCaseStore'
 import { NavRail } from './components/game/GameKit'
 import { playGameSound } from './components/game/audio'
 import TitlePage from './pages/TitlePage'
+import RegisterPage from './pages/RegisterPage'
 import BriefingPage from './pages/BriefingPage'
 import EvidencePage from './pages/EvidencePage'
 import BoardPage from './pages/BoardPage'
@@ -37,6 +38,7 @@ export default function App() {
   }, [])
   return <div className="app-shell"><Routes>
     <Route path="/" element={<TitlePage />} />
+    <Route path="/register" element={<GameRoute><RegisterPage /></GameRoute>} />
     <Route path="/briefing" element={<GameRoute><BriefingPage /></GameRoute>} />
     <Route path="/evidence" element={<GameRoute><EvidencePage /></GameRoute>} />
     <Route path="/board" element={<GameRoute><BoardPage /></GameRoute>} />
