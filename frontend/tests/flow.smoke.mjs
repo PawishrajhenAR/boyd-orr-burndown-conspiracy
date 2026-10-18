@@ -19,7 +19,13 @@ try {
     await page.getByRole('textbox', { name: 'Investigator ID' }).fill('investigator')
     await page.getByLabel('Passcode', { exact: true }).fill('bonfire1105')
     await page.getByRole('button', { name: 'Open the file' }).click()
-    // the opening briefing scene plays first; skip it here (it has its own coverage in e2e/smoke.py)
+    await page.getByRole('button', { name: 'Continue to briefing' }).waitFor()
+    await page.getByRole('dialog', { name: 'Case briefing' }).waitFor({ state: 'detached' })
+    if (viewport.width === 1280) {
+      await page.getByRole('button', { name: 'Continue to briefing' }).click()
+    } else {
+      await page.keyboard.press('Space')
+    }
     await page.getByRole('dialog', { name: 'Case briefing' }).waitFor()
     await page.getByRole('button', { name: 'Skip scene ⏭' }).click()
     await page.getByRole('dialog', { name: 'Case briefing' }).waitFor({ state: 'detached' })

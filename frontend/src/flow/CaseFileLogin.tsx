@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { motion, useAnimationControls } from 'framer-motion'
 import type { Case } from '../types/case'
 import { play } from './sound'
@@ -21,10 +21,6 @@ const T = {
   retract: 0.45, // string slides back to the spine
   open: 0.85, // cover swings open on the rings
   openDuration: 1.2,
-  zoom: 2.05, // push into the first page
-  zoomDuration: 1.15,
-  fade: 2.75,
-  fadeDuration: 0.5,
 }
 
 const RINGS = 8
@@ -40,6 +36,7 @@ export default function CaseFileLogin({ c, onUnlock, reducedMotion }: Props) {
   const [pass, setPass] = useState('')
   const [denied, setDenied] = useState(false)
   const [opening, setOpening] = useState(false)
+  const [opened, setOpened] = useState(false)
   const shake = useAnimationControls()
   const firstInput = useRef<HTMLInputElement>(null)
   const timers = useRef<number[]>([])
@@ -62,12 +59,7 @@ export default function CaseFileLogin({ c, onUnlock, reducedMotion }: Props) {
       setOpening(true)
       play('stamp')
       if (reducedMotion) {
-        timers.current.push(window.setTimeout(() => {
-          if (!unlocked.current) {
-            unlocked.current = true
-            onUnlock()
-          }
-        }, 150))
+        setOpened(true)
         return
       }
       const at = (s: number, fn: () => void) => {
@@ -75,7 +67,10 @@ export default function CaseFileLogin({ c, onUnlock, reducedMotion }: Props) {
       }
       at(T.retract, () => play('slide'))
       at(T.open, () => play('pageturn'))
-      at(T.zoom, () => play('whoosh'))
+      at(T.open + T.openDuration, () => {
+        play('whoosh')
+        setOpened(true)
+      })
     } else {
       setDenied(true)
       play('buzz')
@@ -83,31 +78,34 @@ export default function CaseFileLogin({ c, onUnlock, reducedMotion }: Props) {
     }
   }
 
+  const continueToBriefing = useCallback(() => {
+    if (!opened || unlocked.current) return
+    unlocked.current = true
+    onUnlock()
+  }, [opened, onUnlock])
+
+  useEffect(() => {
+    if (!opened) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== 'Space' && event.key !== ' ') return
+      event.preventDefault()
+      continueToBriefing()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [opened, continueToBriefing])
+
   const at = (delay: number, duration: number, ease: Ease | 'easeIn' | 'easeOut' = SMOOTH) =>
     reducedMotion ? { duration: 0 } : { delay, duration, ease }
 
   return (
     <div className="relative flex h-full items-center justify-center overflow-hidden px-6">
-      {/* Hold the file steady through the cover turn, then push into the revealed page. */}
+      {/* Hold the opened file on screen until the investigator continues. */}
       <motion.div
         initial={reducedMotion ? false : { y: '80vh', rotate: -6, opacity: 0 }}
-        animate={
-          opening && !reducedMotion
-            ? { y: 0, rotate: 0, opacity: 1, x: 0, scale: 3.2 }
-            : { y: 0, rotate: -1.5, opacity: 1, x: 0, scale: 1 }
-        }
-        transition={
-          opening
-            ? {
-                y: { duration: 0.45, ease: SMOOTH },
-                rotate: { duration: 0.45, ease: SMOOTH },
-                scale: reducedMotion
-                  ? { duration: 0 }
-                  : { delay: T.zoom, duration: T.zoomDuration, ease: [0.35, 0, 0.2, 1] },
-              }
-            : { type: 'spring', stiffness: 60, damping: 15 }
-        }
-        style={{ transformOrigin: '52% 48%', willChange: opening ? 'transform' : undefined }}
+        animate={{ y: 0, rotate: opening ? 0 : -1.5, opacity: 1, x: 0, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 60, damping: 15 }}
+        style={{ transformOrigin: '52% 48%' }}
       >
         <motion.div
           animate={shake}
@@ -309,21 +307,22 @@ export default function CaseFileLogin({ c, onUnlock, reducedMotion }: Props) {
         </motion.div>
       </motion.div>
 
-      {/* Finish the camera push before handing off to the title card. */}
-      {opening && !reducedMotion && (
+      {opened && (
         <motion.div
-          className="pointer-events-none absolute inset-0 bg-black"
-          style={{ zIndex: 50 }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: T.fade, duration: T.fadeDuration, ease: SMOOTH }}
-          onAnimationComplete={() => {
-            if (!unlocked.current) {
-              unlocked.current = true
-              onUnlock()
-            }
-          }}
-        />
+          className="absolute inset-x-0 bottom-5 z-20 flex flex-col items-center gap-2 px-4 text-center"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reducedMotion ? 0 : 0.3 }}
+        >
+          <button
+            type="button"
+            onClick={continueToBriefing}
+            className="rounded-sm border border-amber bg-ink/95 px-6 py-3 font-type tracking-[0.16em] text-paper shadow-lg hover:bg-oxblood"
+          >
+            Continue to briefing
+          </button>
+          <p className="font-mono text-xs tracking-wider text-paper/80">Click or press Space</p>
+        </motion.div>
       )}
     </div>
   )
