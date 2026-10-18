@@ -1,5 +1,7 @@
 import { useEffect, type ReactNode } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, useLocation } from 'react-router-dom'
+import InvestigationFlow from './flow/InvestigationFlow'
+import legacyStyles from './index.css?url'
 import { useCaseStore } from './store/useCaseStore'
 import { NavRail } from './components/game/GameKit'
 import { playGameSound } from './components/game/audio'
@@ -26,9 +28,19 @@ function GameRoute({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
+  const { pathname } = useLocation()
   const loadCase = useCaseStore((state) => state.loadCase)
-  useEffect(() => { void loadCase() }, [loadCase])
   useEffect(() => {
+    if (pathname === '/') return
+    const style = document.createElement('link')
+    style.rel = 'stylesheet'
+    style.href = legacyStyles
+    document.head.append(style)
+    void loadCase().catch(() => {})
+    return () => style.remove()
+  }, [loadCase, pathname])
+  useEffect(() => {
+    if (pathname === '/') return
     const onPress = (event: PointerEvent) => {
       const target = (event.target as HTMLElement).closest('button, a')
       if (!target) return
@@ -39,9 +51,10 @@ export default function App() {
     }
     document.addEventListener('pointerdown', onPress)
     return () => document.removeEventListener('pointerdown', onPress)
-  }, [])
+  }, [pathname])
   return <div className="app-shell"><Routes>
-    <Route path="/" element={<TitlePage />} />
+    <Route path="/" element={<InvestigationFlow />} />
+    <Route path="/classic" element={<TitlePage />} />
     <Route path="/register" element={<GameRoute><RegisterPage /></GameRoute>} />
     <Route path="/first-sweep" element={<GameRoute><FirstSweepPage /></GameRoute>} />
     <Route path="/suspect-review" element={<GameRoute><SuspectReviewPage /></GameRoute>} />
