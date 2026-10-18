@@ -1,67 +1,142 @@
-# The Boyd Orr Burndown Conspiracy
+# Case File #1105: The Boyd Orr Burndown Conspiracy
 
-GUTS / SAS hackathon case: find **6 conspirators** and **1 mastermind** in messy campus data — and ship a **creative visualisation**.
+An interactive, data-driven investigation into a fictional campus mystery. Explore movement records, statements, security logs, and connections between people to reconstruct what happened at Boyd Orr Hall.
 
-Repo: https://github.com/PawishrajhenAR/boyd-orr-burndown-conspiracy
+## Contents
 
-## Quick start
+- [The investigation](#the-investigation)
+- [Highlights](#highlights)
+- [Technology](#technology)
+- [Run locally](#run-locally)
+- [Run checks](#run-checks)
+- [API](#api)
+- [Project files](#project-files)
+
+## The investigation
+
+Start with the case overview, then follow the evidence through an interactive investigation. Review the timeline and map, compare accounts with recorded movements, inspect relationships, and examine the evidence before reaching a conclusion.
+
+The case is built from the supplied CSV and text records. The backend prepares the case data and exposes it through an API; the frontend presents the investigation as a guided, interactive experience.
+
+## Highlights
+
+- Case overview and guided investigation flow
+- Interactive movement map, timeline, and relationship network
+- Evidence, student statements, and building details
+- Data-driven case analysis rather than a manually authored answer
+- Responsive interface with animated transitions and optional sound effects
+
+## Technology
+
+| Area | Tools |
+| --- | --- |
+| Frontend | React, TypeScript, Vite |
+| Visualisation | D3, MapLibre/Leaflet |
+| UI state and motion | Zustand, Framer Motion |
+| Backend | Python, FastAPI, Pydantic |
+| Data analysis | pandas, NumPy, NetworkX |
+
+## Run locally
+
+### Prerequisites
+
+- Node.js `20.19+` or `22.12+`, with npm
+- Python `3.12+`
+- Git
+
+### 1. Get the project
 
 ```bash
-git clone https://github.com/PawishrajhenAR/boyd-orr-burndown-conspiracy.git
-cd boyd-orr-burndown-conspiracy
+git clone <repository-url>
+cd SaSProject
 ```
 
-1. Review [`OWNERS.md`](OWNERS.md) before changing shared code.
-2. Use [`docs/design_reference.png`](docs/design_reference.png) as the visual target.
-3. Keep raw challenge files in `data/raw/` and coordinate cross-role changes with the owner.
+Replace `<repository-url>` with the URL of your GitHub repository.
 
-| Role | Owns |
-|------|------|
-| P1 Data Engineer | `backend/app/pipeline/*` |
-| P2 Detective Analyst | `backend/app/analysis/*` |
-| P3 Backend & Integration | API, contract, export |
-| P4 Front-end Game Lead | React shell, game pages |
-| P5 Visualisation | D3 viz + Map/Timeline/Network |
+### 2. Install and start the backend
 
-## Repo layout
-
-```
-├── README.md / OWNERS.md
-├── data/raw/                 challenge CSVs + statements
-├── docs/                     design_reference.png + challenge-brief.pdf
-├── backend/                  P3 glue · P1 pipeline · P2 analysis (stubs ready)
-├── frontend/                 Vite app (P5 viz live; P4 game pages stubbed)
-└── teamate/                  per-person worklogs and presentation materials
-```
-
-### Run viz (P5)
+In a terminal from the repository root:
 
 ```bash
-cd frontend && npm install && npm run dev
+cd backend
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Open http://localhost:5173/ — Map · Timeline · Network.
+On Windows PowerShell, activate the virtual environment with:
 
-### Backend (when P3 fills stubs)
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+Keep this terminal running. The API is available at `http://127.0.0.1:8000`; interactive API documentation is at `http://127.0.0.1:8000/docs`.
+
+### 3. Install and start the frontend
+
+Open a second terminal from the repository root:
 
 ```bash
-cd backend && pip install -r requirements.txt
-# uvicorn app.main:app --reload --port 8000
+cd frontend
+npm ci
+npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
-## Deploy on Vercel
+Open `http://127.0.0.1:5173/` in your browser. The Vite development server forwards `/api` requests to the local backend.
 
-The repository is configured as one Vercel project with two services: the frontend is public at `/`, and the FastAPI backend is public at `/api/*`.
+### Data and case loading
 
-1. Import this Git repository into Vercel and keep the project root set to `.` so it can read the root `vercel.json`.
-2. In **Project Settings → Build and Deployment**, set the **Framework Preset** to **Services**. Vercel requires this setting as well as the `services` block in `vercel.json`.
-3. Leave the service roots and build settings in `vercel.json`; do not add a top-level build command or output directory.
-4. Deploy the project. The frontend calls the backend through same-origin `/api` URLs, so no API URL environment variable or service binding is required.
+The backend reads the challenge inputs from `data/raw/` at the repository root:
 
-For local Vercel routing, install Python 3.12 and run `npx vercel dev -L` from the repository root. For a linked Vercel project, deploy with `npx vercel --prod`.
+```text
+data/raw/
+├── people_data.csv
+├── location_data.csv
+├── security_logs.csv
+└── student_statements.txt
+```
 
-## Git
+The frontend requests the case from `/api/case`. If the API is unavailable, it can use an exported `case.json` or the included sample case so the interface can still be explored.
 
-Branch `p<N>-<topic>` → small PRs into `main`. Pull `main` before each task.
+## Run checks
 
-Good luck — protect the Boyd Orr.
+Run frontend checks from `frontend/`:
+
+```bash
+npm test
+npm run lint
+npm run build
+```
+
+Run the browser end-to-end suite with:
+
+```bash
+npm run e2e
+```
+
+Run backend tests from `backend/` if the test dependencies are installed:
+
+```bash
+python -m pytest
+```
+
+## API
+
+The FastAPI service provides endpoints for case data, health checks, student and building details, meetings, uploads, and configuration. Browse the interactive endpoint list at `http://127.0.0.1:8000/docs` while the backend is running.
+
+## Project files
+
+```text
+backend/       FastAPI service and data processing
+data/raw/      Original case input files
+docs/          Project brief, visual reference, and documentation assets
+frontend/      React application and visualisations
+```
+
+---
+
+<p align="center">
+  <img src="docs/team29-thank-you.svg" alt="Thank you, from Team 29, with a heart" width="720">
+</p>
