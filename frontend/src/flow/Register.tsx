@@ -36,7 +36,7 @@ export function StudentCard({
     <button
       type="button"
       onClick={onFlip}
-      className="flip h-36 w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-amber"
+      className="flip h-44 w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-amber"
       aria-pressed={flipped}
       aria-label={flipped ? `${student.name}, ${student.id}` : `Student ${student.id} — click to reveal`}
     >
@@ -64,7 +64,7 @@ export function StudentCard({
           animate={{ opacity: reducedMotion && !flipped ? 0 : 1 }}
           transition={reducedMotion ? { duration: 0.2 } : { duration: 0 }}
         >
-          <StudentAvatar student={student} size={52} />
+          <StudentAvatar student={student} size={72} />
           <span className="mt-1 text-center text-sm leading-tight font-semibold">{student.name}</span>
           <span className="font-mono text-[11px] text-ink/70">{student.id}</span>
           <span className="text-[10px] text-ink/70">{student.subject}</span>

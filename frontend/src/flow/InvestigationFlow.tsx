@@ -4,7 +4,7 @@ import { loadCase } from '../api/client'
 import type { Case } from '../types/case'
 import Background from './Background'
 import { buildScripts } from './dialogue'
-import Envelope from './Envelope'
+import CaseFileLogin from './CaseFileLogin'
 import FinalResult from './FinalResult'
 import LevelOneFilter from './LevelOneFilter'
 import LevelTwoSix from './LevelTwoSix'
@@ -214,7 +214,7 @@ export default function InvestigationFlow() {
       <div ref={scroller} className="snap-flow relative z-10">
         {!unlocked && (
           <section className="snap-page">
-            <Envelope onUnlock={unlock} reducedMotion={reducedMotion} />
+            <CaseFileLogin c={c} onUnlock={unlock} reducedMotion={reducedMotion} />
           </section>
         )}
         {unlocked && (
@@ -229,7 +229,7 @@ export default function InvestigationFlow() {
               <LevelTwoSix {...common} shortlist={shortlist} script={scripts.level2} threshold={scripts.vars.threshold} active={pageActive(3)} onNext={() => goTo(4)} />
             </section>
             <section ref={ref(4)} data-step={4} className="snap-page">
-              <MovementChart {...common} shortlist={shortlist} script={scripts.level3} active={pageActive(4)} onNext={() => goTo(5)} />
+              <MovementChart {...common} shortlist={shortlist} script={scripts.level3} asides={scripts.level3Asides} active={pageActive(4)} onNext={() => goTo(5)} />
             </section>
             <section ref={ref(5)} data-step={5} className="snap-page print-me">
               <FinalResult {...common} script={scripts.final} active={pageActive(5)} onReplay={replay} />

@@ -1,8 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import type { Case } from '../src/types/case.ts'
-import { buildScripts, fillTemplate, scriptVars } from '../src/flow/dialogue.ts'
+import { buildScripts, fillTemplate, REACTIONS, scriptVars } from '../src/flow/dialogue.ts'
 
 const realCase = JSON.parse(
   readFileSync(new URL('../public/case.json', import.meta.url), 'utf8'),
@@ -13,6 +13,30 @@ test('every placeholder is filled from the data', () => {
   for (const line of [...s.level1, ...s.level2, ...s.level3, ...s.final]) {
     assert.doesNotMatch(line.text, /\{\w+\}/, line.text)
   }
+})
+
+test('every dialogue line has valid Mathew and Morag reaction sprites', () => {
+  const scripts = buildScripts(realCase)
+  const lines = [...scripts.level1, ...scripts.level2, ...scripts.level3, ...scripts.final, scripts.level3Asides.rewind, scripts.level3Asides.replayed]
+  for (const line of lines) {
+    const reaction = REACTIONS[line.reaction]
+    assert.ok(reaction, `reaction exists for: ${line.text}`)
+    assert.ok(existsSync(new URL(`../public/characters/mathew/${reaction.mathew}.webp`, import.meta.url)), reaction.mathew)
+    assert.ok(existsSync(new URL(`../public/characters/morag/${reaction.morag}.webp`, import.meta.url)), reaction.morag)
+  }
+})
+
+test('evidence moments are populated from case flags, suspects, and meetings', () => {
+  const scripts = buildScripts(realCase)
+  const breakerCue = scripts.level1.find(line => line.stage === 'breakers')?.evidence
+  const suspectCue = scripts.level2.find(line => line.stage === 'six')?.evidence
+  const meetingCue = scripts.level3.find(line => line.stage === 'reveal')?.evidence
+  const expectedSuspects = realCase.suspects.filter(suspect => suspect.verdict === 'conspirator')
+
+  assert.equal(breakerCue?.items.length, Math.min(3, new Set(realCase.flags.filter(flag => flag.severity > 0).map(flag => flag.rule)).size))
+  assert.deepEqual(suspectCue?.items.map(item => item.label), expectedSuspects.map(suspect => realCase.students.find(student => student.id === suspect.student_id)?.name))
+  assert.ok(meetingCue?.title.includes(`${expectedSuspects.length} of ${expectedSuspects.length}`))
+  assert.ok(meetingCue?.items.length)
 })
 
 test('lines stay short (≈20 words, readable in 2 s)', () => {

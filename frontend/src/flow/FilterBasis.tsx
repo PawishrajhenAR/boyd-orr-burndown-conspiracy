@@ -15,14 +15,15 @@ export interface BasisRow {
 interface Props {
   title: string
   rows: BasisRow[]
+  className?: string
   /** Extra detail under the rows (rule list, severity table…). */
   children?: ReactNode
 }
 
 /** Right-hand "why" panel: rule · threshold · count before → after, for every filter step shown so far. */
-export default function FilterBasis({ title, rows, children }: Props) {
+export default function FilterBasis({ title, rows, children, className = 'w-72' }: Props) {
   return (
-    <aside className="flex w-72 shrink-0 flex-col gap-3 overflow-y-auto rounded-md border border-paper/15 bg-[#1b1714]/90 p-4" aria-label="Filter basis">
+    <aside className={`flex shrink-0 flex-col gap-3 overflow-y-auto rounded-md border border-paper/15 bg-[#1b1714]/90 p-4 ${className}`} aria-label="Filter basis">
       <h3 className="font-type text-sm tracking-[0.25em] text-amber uppercase">{title}</h3>
       <ol className="space-y-2">
         <AnimatePresence initial={false}>

@@ -12,6 +12,8 @@
     "e2e": "node tests/flow.smoke.mjs"
   },
   "dependencies": {
+    "@dicebear/avataaars": "^9.4.2",
+    "@dicebear/core": "^9.4.3",
     "@tailwindcss/vite": "^4.3.3",
     "@types/d3": "^7.4.3",
     "@types/howler": "^2.2.13",

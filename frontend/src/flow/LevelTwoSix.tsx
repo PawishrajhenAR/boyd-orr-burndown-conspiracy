@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
 import { StudentAvatar } from './avatars'
-import Conversation, { useDialogue } from './Conversation'
+import Conversation from './Conversation'
+import { useDialogue } from './useDialogue'
 import type { Level2Stage, Line } from './dialogue'
 import FilterBasis, { type BasisRow } from './FilterBasis'
 import { StudentDrawer } from './LevelOneFilter'
@@ -91,7 +92,7 @@ export default function LevelTwoSix({ c, active, reducedMotion, onNext, shortlis
   ]
 
   return (
-    <div className="flex h-full flex-col px-6 pt-14 pb-10 md:px-12">
+    <div className="flex h-auto min-h-full flex-col px-4 pt-14 pb-14 md:h-full md:px-12 md:pb-10">
       <header className="mb-2 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="font-mono text-xs tracking-[0.3em] text-paper/70">LEVEL 2 · THE SIX</p>
@@ -121,8 +122,8 @@ export default function LevelTwoSix({ c, active, reducedMotion, onNext, shortlis
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 gap-4">
-        <div className="relative min-w-0 flex-1 overflow-y-auto px-1 pt-3 pb-4">
+      <div className="flex min-h-[420px] flex-1 flex-col gap-4 md:min-h-0 md:flex-row">
+        <div className="relative min-h-[240px] min-w-0 flex-1 overflow-y-auto px-1 pt-3 pb-4 md:min-h-0">
           <LayoutGroup>
             <motion.div layout className={phase === 3 ? 'mx-auto grid max-w-5xl grid-cols-4 gap-3' : phase === 2 ? 'mx-auto grid max-w-4xl grid-cols-3 gap-4' : 'grid grid-cols-5 gap-2'}>
               <AnimatePresence mode="popLayout">
@@ -147,7 +148,7 @@ export default function LevelTwoSix({ c, active, reducedMotion, onNext, shortlis
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <StudentAvatar student={s} size={big ? 44 : 28} />
+                        <StudentAvatar student={s} size={big ? 56 : 34} />
                         <div className="min-w-0">
                           <p className={`text-sm font-semibold ${big ? 'leading-tight' : 'truncate'}`}>{s.name}</p>
                           <p className={`font-mono text-[11px] ${big ? 'text-ink/70' : 'text-paper/70'}`}>{s.id}</p>
@@ -212,7 +213,7 @@ export default function LevelTwoSix({ c, active, reducedMotion, onNext, shortlis
           )}
         </div>
 
-        <FilterBasis title="Filter basis" rows={basisRows}>
+        <FilterBasis title="Filter basis" rows={basisRows} className="max-h-56 w-full md:max-h-none md:w-72">
           <div>
             <p className="mb-1 text-[11px] font-semibold tracking-widest text-paper/70 uppercase">Severity per rule (from the data)</p>
             <ul className="space-y-0.5 font-mono text-[11px] text-paper">

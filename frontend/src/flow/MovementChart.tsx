@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import type { Building, Meeting, Visit } from '../types/case'
-import Conversation, { useDialogue } from './Conversation'
+import Conversation from './Conversation'
+import { useDialogue } from './useDialogue'
 import type { Level3Stage, Line } from './dialogue'
 import type { PageProps } from './Register'
 import { clock, type Shortlist } from './shortlist'
@@ -59,9 +60,13 @@ const neutralReveal = (): Reveal => ({ redVisits: new Set(), sixRed: false, boss
 interface Props extends PageProps {
   shortlist: Shortlist
   script: Line<Level3Stage>[]
+  /** Lines spoken when the user rewinds time, and when the replay reaches the end again. */
+  asides: { rewind: Line<Level3Stage>; replayed: Line<Level3Stage> }
 }
 
-export default function MovementChart({ c, active, reducedMotion, onNext, shortlist, script }: Props) {
+type Aside = null | 'rewind' | 'replayed'
+
+export default function MovementChart({ c, active, reducedMotion, onNext, shortlist, script, asides }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
@@ -69,6 +74,9 @@ export default function MovementChart({ c, active, reducedMotion, onNext, shortl
   const tMax = c.meta.time_max
   const [now, setNow] = useState(tMin)
   const [playing, setPlaying] = useState(false)
+  /** +1 = play forward, −1 = play in reverse (rewind). */
+  const [direction, setDirection] = useState<1 | -1>(1)
+  const [aside, setAside] = useState<Aside>(null)
   const [hover, setHover] = useState<{ x: number; y: number; text: string } | null>(null)
   const [analysis, setAnalysis] = useState<{ step: 0 | 1 | 2 | 3 | 4; found: number }>({ step: 0, found: 0 })
   const reveal = useRef<Reveal>(neutralReveal())
@@ -96,16 +104,17 @@ export default function MovementChart({ c, active, reducedMotion, onNext, shortl
     const tick = (ts: number) => {
       const dt = (ts - last) / 1000
       last = ts
-      setNow((t) => {
-        const next = Math.min(tMax, t + dt * MINUTES_PER_SECOND)
-        if (next >= tMax) setPlaying(false)
-        return next
-      })
+      setNow((t) => Math.min(tMax, Math.max(tMin, t + direction * dt * MINUTES_PER_SECOND)))
       raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [playing, tMax])
+  }, [playing, direction, tMin, tMax])
+
+  // Stop at either end of the day.
+  useEffect(() => {
+    if (playing && ((direction === 1 && now >= tMax) || (direction === -1 && now <= tMin))) setPlaying(false)
+  }, [now, playing, direction, tMin, tMax])
 
   const boss = useMemo(() => c.suspects.find((s) => s.verdict === 'mastermind')?.student_id ?? null, [c])
   const sixIds = useMemo(() => new Set(c.suspects.filter((s) => s.verdict === 'conspirator').map((s) => s.student_id)), [c])
@@ -213,6 +222,8 @@ export default function MovementChart({ c, active, reducedMotion, onNext, shortl
     reveal.current = neutralReveal()
     applyReveal(0)
     setPlaying(false)
+    setDirection(1)
+    setAside(null)
     setNow(tMax)
     setAnalysis({ step: 1, found: 0 })
     const at = (ms: number, fn: () => void) => timers.current.push(window.setTimeout(fn, reducedMotion ? 0 : ms))
@@ -238,18 +249,13 @@ export default function MovementChart({ c, active, reducedMotion, onNext, shortl
     bossMeetings.forEach((_, i) =>
       at(t2 + i * MEETING_STEP_MS, () => {
         const found = i + 1
-        reveal.current.found = found
-        reveal.current.bossLevel = found / total
         setAnalysis({ step: 3, found })
-        applyReveal(300)
         play('heartbeat', { volume: 0.45 + 0.55 * (found / total) })
       }),
     )
     // 4. everyone else fades; the mastermind is drawn on top
     at(t2 + bossMeetings.length * MEETING_STEP_MS + 300, () => {
-      reveal.current.done = true
       setAnalysis({ step: 4, found: bossMeetings.length })
-      applyReveal(600)
     })
   }, [applyReveal, bossMeetings, flaggedVisits, reducedMotion, sixIds.size, tMax])
 
@@ -270,6 +276,36 @@ export default function MovementChart({ c, active, reducedMotion, onNext, shortl
   }, [applyReveal, bossMeetings.length, flaggedVisits, tMax])
 
   useEffect(() => () => cancelAnalysis(), [])
+
+  // ---- findings follow the clock: a meeting only "counts" once time has reached it ----
+  const effectiveFound = useMemo(
+    () => bossMeetings.slice(0, analysis.found).filter((m) => m.start <= now).length,
+    [bossMeetings, analysis.found, now],
+  )
+  const allFound = analysis.step === 4 && effectiveFound === bossMeetings.length
+  const lastFound = useRef(0)
+  useEffect(() => {
+    // replaying after the analysis: one heartbeat per meeting as time passes it
+    if (analysis.step === 4 && effectiveFound > lastFound.current) play('heartbeat', { volume: 0.45 + 0.55 * (effectiveFound / Math.max(1, sixIds.size)) })
+    lastFound.current = effectiveFound
+    reveal.current.found = effectiveFound
+    reveal.current.bossLevel = effectiveFound / Math.max(1, sixIds.size)
+    reveal.current.done = allFound
+    applyReveal(analysis.step === 4 ? 250 : 300)
+  }, [effectiveFound, allFound, analysis.step, applyReveal, sixIds.size])
+
+  // ---- rewinding: the officers notice, and confirm again when the day is replayed to the end ----
+  const userRewound = () => {
+    if (analysis.step === 4 && aside !== 'rewind') setAside('rewind')
+  }
+  useEffect(() => {
+    if (aside === 'rewind' && allFound) setAside('replayed') // the replay has reached the last meeting again
+  }, [aside, allFound])
+  useEffect(() => {
+    if (aside !== 'replayed') return
+    const t = window.setTimeout(() => setAside(null), 5000)
+    return () => clearTimeout(t)
+  }, [aside])
 
   // Dialogue stage → chart action.
   useEffect(() => {
@@ -442,12 +478,24 @@ export default function MovementChart({ c, active, reducedMotion, onNext, shortl
     svg.select('.now-line').attr('x1', px).attr('x2', px)
   }, [now, size, series])
 
+  // Script so far + the rewind aside(s); the main script pauses while an aside is showing.
+  const asideLines = useMemo(() => {
+    if (!aside) return { lines: script as Line[], index: dialogue.index }
+    const sofar: Line[] = script.slice(0, dialogue.index + 1)
+    const extra: Line[] = aside === 'rewind' ? [asides.rewind] : [asides.rewind, asides.replayed]
+    return { lines: [...sofar, ...extra], index: sofar.length + extra.length - 1 }
+  }, [aside, script, dialogue.index, asides])
+
   const total = sixIds.size
   const progress =
     analysis.step === 0
       ? null
       : analysis.step === 4
-        ? 'Pattern found'
+        ? allFound
+          ? 'Pattern found'
+          : direction === -1 && playing
+            ? 'Rewinding the day…'
+            : 'Replaying the day…'
         : `Analysing pattern… ${analysis.step}/3 · ${['', 'rule-break visits', 'the six', 'meetings with the six'][analysis.step]}`
 
   return (
@@ -495,9 +543,9 @@ export default function MovementChart({ c, active, reducedMotion, onNext, shortl
                 {progress}
               </p>
               <p className="rounded bg-ink/90 px-3 py-1 font-mono text-xs text-amber" data-testid="meeting-counter">
-                Meetings with the six: {analysis.found} / {total}
+                Meetings with the six: {analysis.step === 4 ? effectiveFound : analysis.found} / {total}
               </p>
-              {analysis.step === 4 && (
+              {allFound && (
                 <p className="rounded bg-ink/90 px-3 py-1 font-type text-sm tracking-wider text-amber">One clean student was with all six.</p>
               )}
             </div>
@@ -509,13 +557,36 @@ export default function MovementChart({ c, active, reducedMotion, onNext, shortl
           <button
             type="button"
             onClick={() => {
-              if (now >= tMax) setNow(tMin)
-              setPlaying((p) => !p)
+              if (playing && direction === -1) {
+                setPlaying(false)
+                return
+              }
+              if (now <= tMin) setNow(tMax)
+              setDirection(-1)
+              setPlaying(true)
+              userRewound()
             }}
-            className="h-9 w-9 rounded-full bg-ink text-paper hover:bg-oxblood"
-            aria-label={playing ? 'Pause' : 'Play'}
+            className={`h-9 w-9 rounded-full text-paper hover:bg-oxblood ${playing && direction === -1 ? 'bg-oxblood' : 'bg-ink'}`}
+            aria-label={playing && direction === -1 ? 'Pause rewind' : 'Rewind'}
+            title="Play the day in reverse"
           >
-            {playing ? '❚❚' : '▶'}
+            {playing && direction === -1 ? '❚❚' : '◀'}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (playing && direction === 1) {
+                setPlaying(false)
+                return
+              }
+              if (now >= tMax) setNow(tMin)
+              setDirection(1)
+              setPlaying(true)
+            }}
+            className={`h-9 w-9 rounded-full text-paper hover:bg-oxblood ${playing && direction === 1 ? 'bg-oxblood' : 'bg-ink'}`}
+            aria-label={playing && direction === 1 ? 'Pause' : 'Play'}
+          >
+            {playing && direction === 1 ? '❚❚' : '▶'}
           </button>
           <input
             type="range"
@@ -524,8 +595,10 @@ export default function MovementChart({ c, active, reducedMotion, onNext, shortl
             step={1}
             value={Math.round(now)}
             onChange={(e) => {
+              const next = Number(e.target.value)
+              if (next < now) userRewound()
               setPlaying(false)
-              setNow(Number(e.target.value))
+              setNow(next)
             }}
             className="flex-1 accent-[#5c0000]"
             aria-label="Scrub time"
@@ -536,14 +609,14 @@ export default function MovementChart({ c, active, reducedMotion, onNext, shortl
 
       <div className="mt-2">
         <Conversation
-          lines={script}
-          index={dialogue.index}
+          lines={asideLines.lines}
+          index={asideLines.index}
           onAdvance={dialogue.advance}
           onSkip={dialogue.skip}
           auto={dialogue.auto}
           onToggleAuto={dialogue.toggleAuto}
           active={active}
-          blocked={playing || (analysis.step > 0 && analysis.step < 4)}
+          blocked={playing || aside !== null || (analysis.step > 0 && analysis.step < 4)}
           reducedMotion={reducedMotion}
         />
       </div>

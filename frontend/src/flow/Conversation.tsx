@@ -1,39 +1,77 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { SPEAKERS, type Line, type Speaker } from './dialogue'
+import { FALLBACK_REACTION, REACTIONS, SPEAKERS, type CharacterReaction, type Line, type ReactionId, type Speaker } from './dialogue'
 import { play } from './sound'
 
-export const AUTO_LINE_MS = 2500
+export const AUTO_LINE_MS = 3400
 
-/** Flat speaker avatars: Morag (police cap), Ember (detective hat). */
-function SpeakerAvatar({ speaker }: { speaker: Speaker }) {
-  return speaker === 'morag' ? (
-    <svg viewBox="0 0 40 40" width="36" height="36" aria-hidden="true">
-      <circle cx="20" cy="22" r="9" fill="#d9b79a" />
-      <rect x="9" y="9" width="22" height="7" rx="2" fill="#23324a" />
-      <rect x="7" y="15" width="26" height="3" rx="1.5" fill="#1a2436" />
-      <rect x="14" y="11" width="12" height="2" fill="#efe6d2" opacity="0.7" />
-      <path d="M6 40 Q8 31 20 30 Q32 31 34 40 Z" fill="#23324a" />
-    </svg>
-  ) : (
-    <svg viewBox="0 0 40 40" width="36" height="36" aria-hidden="true">
-      <circle cx="20" cy="22" r="9" fill="#d9b79a" />
-      <path d="M8 16 Q20 3 32 16 Z" fill="#6b4a2f" />
-      <rect x="5" y="15" width="30" height="3" rx="1.5" fill="#4a3220" />
-      <path d="M6 40 Q8 31 20 30 Q32 31 34 40 Z" fill="#8a5a2b" />
-    </svg>
+const REACTION_IDS = new Set<string>(Object.keys(REACTIONS))
+
+function reactionFor(id: ReactionId | string | undefined): CharacterReaction {
+  return id && REACTION_IDS.has(id) ? REACTIONS[id as ReactionId] : FALLBACK_REACTION
+}
+
+function CharacterSprite({ character, expression, speaker, active, reducedMotion }: {
+  character: 'mathew' | 'morag'
+  expression: string
+  speaker: boolean
+  active: boolean
+  reducedMotion: boolean
+}) {
+  const [failed, setFailed] = useState(false)
+  const safeExpression = /^[a-z-]+$/.test(expression) ? expression : 'neutral'
+  const src = `/characters/${character}/${safeExpression}.webp`
+
+  return (
+    <motion.div
+      className={`conversation-character conversation-character--${character}${speaker ? ' is-speaking' : ' is-listening'}`}
+      initial={reducedMotion ? false : { opacity: 0, y: 24, scale: 0.96 }}
+      animate={{ opacity: active ? 1 : 0.54, y: 0, scale: speaker ? 1.025 : 0.97 }}
+      transition={{ duration: reducedMotion ? 0 : 0.36, ease: 'easeOut' }}
+      aria-hidden="true"
+    >
+      {!failed ? (
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.img
+            key={src}
+            src={src}
+            alt=""
+            draggable={false}
+            onError={() => setFailed(true)}
+            initial={reducedMotion ? false : { opacity: 0.72, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: reducedMotion ? 0 : 0.22 }}
+          />
+        </AnimatePresence>
+      ) : (
+        <span className="conversation-character__fallback">{character === 'mathew' ? 'M' : 'P'}</span>
+      )}
+    </motion.div>
   )
 }
 
-function Typed({ text, instant }: { text: string; instant: boolean }) {
-  const [n, setN] = useState(instant ? text.length : 0)
+function Typed({ text, instant, onComplete }: { text: string; instant: boolean; onComplete: () => void }) {
+  const [length, setLength] = useState(0)
+
   useEffect(() => {
-    if (instant) return
-    const step = Math.max(10, Math.min(28, 1100 / text.length)) // whole line in ≈1.1 s
-    const id = window.setInterval(() => setN((k) => (k >= text.length ? k : k + 1)), step)
-    return () => clearInterval(id)
-  }, [text, instant])
-  return <>{instant ? text : text.slice(0, n)}</>
+    if (instant) {
+      onComplete()
+      return
+    }
+    let revealed = 0
+    const stepMs = Math.max(10, Math.min(14, 680 / Math.max(text.length, 1)))
+    const timer = window.setInterval(() => {
+      revealed = Math.min(text.length, revealed + 1)
+      setLength(revealed)
+      if (revealed >= text.length) {
+        window.clearInterval(timer)
+        onComplete()
+      }
+    }, stepMs)
+    return () => window.clearInterval(timer)
+  }, [text, instant, onComplete])
+
+  return <>{instant ? text : text.slice(0, length)}</>
 }
 
 interface Props {
@@ -51,120 +89,144 @@ interface Props {
   reducedMotion: boolean
 }
 
-/** Police ⇄ investigator speech strip. Each new line triggers the page's next animation stage. */
+/** Cinematic comic dialogue shared by every investigation stage. */
 export default function Conversation({ lines, index, onAdvance, onSkip, auto, onToggleAuto, active, blocked = false, reducedMotion }: Props) {
   const atEnd = index >= lines.length - 1
   const current = lines[index]
+  const [revealedIndex, setRevealedIndex] = useState(-1)
+  const [doneIndex, setDoneIndex] = useState(reducedMotion ? index : -1)
+  const [cueIndex, setCueIndex] = useState(-1)
+  const previousSpeaker = useRef<Speaker | null>(null)
+  const reaction = reactionFor(current?.reaction)
+  const evidence = current?.evidence
+  const revealed = reducedMotion || revealedIndex === index
+  const typingDone = reducedMotion || doneIndex === index
+  const markTypingDone = useCallback(() => setDoneIndex(index), [index])
 
-  // Soft blip per line; Morag lower, Ember higher.
   useEffect(() => {
-    if (active && current) play('blip', { rate: current.speaker === 'morag' ? 0.8 : 1.3 })
-  }, [active, index, current])
+    if (!active || !current) return
+    const switched = previousSpeaker.current !== null && previousSpeaker.current !== current.speaker
+    previousSpeaker.current = current.speaker
+    if (switched) play('swish', { volume: 0.34 })
+    if (reaction.impact) {
+      const timer = window.setTimeout(() => play('sting', { volume: 0.34 }), reducedMotion ? 0 : 170)
+      return () => window.clearTimeout(timer)
+    }
+    return undefined
+  }, [active, current, index, reaction.impact, reducedMotion])
 
-  // Auto-play: one line every 2.5 s.
   useEffect(() => {
-    if (!active || !auto || atEnd || blocked) return
-    const t = window.setTimeout(onAdvance, AUTO_LINE_MS)
-    return () => clearTimeout(t)
-  }, [active, auto, atEnd, blocked, index, onAdvance])
+    if (!active) previousSpeaker.current = null
+  }, [active])
 
-  // Space / → advance the dialogue first; at the end of the script → falls through to page navigation.
+  useEffect(() => {
+    if (!active || !auto || atEnd || blocked || !typingDone) return
+    const timer = window.setTimeout(onAdvance, AUTO_LINE_MS)
+    return () => window.clearTimeout(timer)
+  }, [active, auto, atEnd, blocked, index, onAdvance, typingDone])
+
+  useEffect(() => {
+    if (!active || !evidence || !typingDone) return
+    const timer = window.setTimeout(() => setCueIndex(index), 3100)
+    return () => window.clearTimeout(timer)
+  }, [active, evidence, index, typingDone])
+
+  const cueVisible = active && !!evidence && typingDone && cueIndex !== index
+
+  const advanceOrReveal = useCallback(() => {
+    if (!typingDone) {
+      setRevealedIndex(index)
+      setDoneIndex(index)
+      return
+    }
+    if (!atEnd) onAdvance()
+  }, [atEnd, index, onAdvance, typingDone])
+
   useEffect(() => {
     if (!active) return
-    const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement | null)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return
-      if ((e.key === ' ' || e.key === 'ArrowRight') && !atEnd) {
-        e.preventDefault()
-        e.stopImmediatePropagation()
-        onAdvance()
+    const onKey = (event: KeyboardEvent) => {
+      const tag = (event.target as HTMLElement | null)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'A' || tag === 'SELECT' || event.altKey || event.ctrlKey || event.metaKey) return
+      if ((event.key === ' ' || event.key === 'ArrowRight') && (!atEnd || !typingDone)) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        advanceOrReveal()
       }
     }
     window.addEventListener('keydown', onKey, { capture: true })
     return () => window.removeEventListener('keydown', onKey, { capture: true })
-  }, [active, atEnd, onAdvance])
+  }, [active, advanceOrReveal, atEnd, typingDone])
 
-  const visible = lines.slice(Math.max(0, index - 1), index + 1) // max 2 lines at once
-  const first = Math.max(0, index - 1)
+  if (!current) return null
+  const speakerCharacter = current.speaker === 'morag' ? 'morag' : 'mathew'
+  const listenerCharacter = speakerCharacter === 'morag' ? 'mathew' : 'morag'
+  const speakerExpression = speakerCharacter === 'morag' ? reaction.morag : reaction.mathew
+  const listenerExpression = listenerCharacter === 'morag' ? reaction.morag : reaction.mathew
+  const who = SPEAKERS[current.speaker]
 
   return (
-    <div className="flex w-full max-w-2xl flex-col gap-2" aria-live="polite">
-      <div className="flex min-h-[7.5rem] flex-col justify-end gap-2">
-        <AnimatePresence initial={false} mode="popLayout">
-          {visible.map((line, i) => {
-            const isCurrent = first + i === index
-            const who = SPEAKERS[line.speaker]
-            return (
-              <motion.div
-                key={first + i}
-                layout
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: isCurrent ? 1 : 0.8, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: reducedMotion ? 0 : 0.25 }}
-                className="flex items-end gap-2"
-              >
-                <SpeakerAvatar speaker={line.speaker} />
-                <div
-                  className={`rounded-lg rounded-bl-none border px-3 py-2 text-sm ${
-                    line.speaker === 'morag' ? 'border-paper/20 bg-[#1f2530]' : 'border-amber/40 bg-[#2a2116]'
-                  }`}
-                >
-                  <p className="text-[10px] font-semibold tracking-widest text-paper/70 uppercase">
-                    {who.name} <span className="font-normal normal-case tracking-normal text-paper/60">· {who.role}</span>
-                  </p>
-                  <p className="text-paper">
-                    {isCurrent ? <Typed key={first + i} text={line.text} instant={reducedMotion} /> : line.text}
-                  </p>
-                </div>
-              </motion.div>
-            )
-          })}
+    <section className={`comic-conversation${reaction.impact ? ' is-impact' : ''}${reaction.camera ? ' is-focus' : ''}`} aria-label="Investigator dialogue">
+      <CharacterSprite key={`mathew-${reaction.mathew}`} character="mathew" expression={reaction.mathew} speaker={speakerCharacter === 'mathew'} active={active} reducedMotion={reducedMotion} />
+      <div className="comic-conversation__center">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.article
+            key={`${index}-${current.reaction}`}
+            className={`comic-dialogue comic-dialogue--${current.speaker}`}
+            initial={reducedMotion ? false : { opacity: 0, y: 12, scale: 0.985 }}
+            animate={{ opacity: 1, y: 0, scale: reaction.camera && !reducedMotion ? [1, 1.012, 1] : 1 }}
+            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+            transition={{ duration: reducedMotion ? 0 : 0.3, ease: 'easeOut' }}
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            <div className="comic-dialogue__heading">
+              <span className="comic-dialogue__speaker">{who.name}</span>
+              <span className="comic-dialogue__role">{who.role}</span>
+              {reaction.impact && <span className="comic-dialogue__cue" aria-hidden="true">LEAD FOUND</span>}
+            </div>
+            <p className="comic-dialogue__text">
+              <Typed key={index} text={current.text} instant={reducedMotion || revealed} onComplete={markTypingDone} />
+              {!typingDone && <span className="comic-dialogue__caret" aria-hidden="true" />}
+            </p>
+          </motion.article>
         </AnimatePresence>
+        <AnimatePresence initial={false}>
+          {evidence && cueVisible && (
+            <motion.aside
+              key={`${index}-evidence`}
+              className="comic-evidence"
+              aria-label="Case evidence"
+              aria-live="polite"
+              initial={reducedMotion ? false : { opacity: 0, y: 8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -5 }}
+              transition={{ duration: reducedMotion ? 0 : 0.24, ease: 'easeOut' }}
+            >
+              <div className="comic-evidence__heading">
+                <span>{evidence.eyebrow}</span>
+                <strong>{evidence.title}</strong>
+              </div>
+              <ul>
+                {evidence.items.map((item) => <li key={`${item.label}-${item.detail}`}><b>{item.label}</b><span>{item.detail}</span></li>)}
+              </ul>
+              {evidence.note && <p className="comic-evidence__note">{evidence.note}</p>}
+            </motion.aside>
+          )}
+        </AnimatePresence>
+        <div className="comic-controls">
+          <button type="button" onClick={advanceOrReveal} disabled={atEnd && typingDone} className="comic-control comic-control--primary">
+            {!typingDone ? 'Reveal line' : atEnd ? 'File complete' : 'Next line ▸'}
+          </button>
+          <button type="button" onClick={onToggleAuto} aria-pressed={auto} className="comic-control">
+            {auto ? '❚❚ Auto' : '▶ Auto'}
+          </button>
+          <button type="button" onClick={onSkip} disabled={atEnd} className="comic-control comic-control--quiet">
+            Skip ⏭
+          </button>
+          <span className="comic-progress">{Math.max(0, index + 1)} / {lines.length} <span>· Space / →</span></span>
+        </div>
       </div>
-      <div className="flex items-center gap-2 pl-11 text-xs">
-        <button
-          type="button"
-          onClick={onAdvance}
-          disabled={atEnd}
-          className="rounded bg-amber px-3 py-1.5 font-semibold text-ink hover:brightness-110 disabled:opacity-40"
-        >
-          Next line ▸
-        </button>
-        <button
-          type="button"
-          onClick={onToggleAuto}
-          aria-pressed={auto}
-          className={`rounded border px-3 py-1.5 ${auto ? 'border-amber text-amber' : 'border-paper/30 text-paper/80'}`}
-        >
-          {auto ? '❚❚ Auto' : '▶ Auto'}
-        </button>
-        <button
-          type="button"
-          onClick={onSkip}
-          disabled={atEnd}
-          className="rounded border border-paper/30 px-3 py-1.5 text-paper/80 hover:border-amber disabled:opacity-40"
-        >
-          Skip ⏭
-        </button>
-        <span className="ml-1 font-mono text-paper/60">
-          {Math.max(0, index + 1)}/{lines.length} · Space / →
-        </span>
-      </div>
-    </div>
+      <CharacterSprite key={`morag-${reaction.morag}`} character="morag" expression={listenerCharacter === 'morag' ? listenerExpression : speakerExpression} speaker={speakerCharacter === 'morag'} active={active} reducedMotion={reducedMotion} />
+    </section>
   )
-}
-
-/** Dialogue state for a page: index, auto, advance/skip/reset. */
-export function useDialogue(length: number, active: boolean, autoDefault = true) {
-  const [index, setIndex] = useState(-1)
-  const [auto, setAuto] = useState(autoDefault)
-  // First line appears when the page is first shown.
-  if (active && index === -1 && length > 0) setIndex(0)
-  // Stable callbacks, so auto-play timers aren't restarted by unrelated re-renders.
-  const advance = useCallback(() => setIndex((i) => Math.min(length - 1, i + 1)), [length])
-  const skip = useCallback(() => setIndex(length - 1), [length])
-  const reset = useCallback(() => setIndex(0), [])
-  const toggleAuto = useCallback(() => setAuto((a) => !a), [])
-  return { index, auto, advance, skip, reset, toggleAuto }
 }
