@@ -44,7 +44,7 @@ export default function FirstSweepPage() {
     </section>}
     <div className="register-toolbar">
       {stage > 0 && <button type="button" className="btn" onClick={() => { setStage(stage - 1); setSelectedId(null) }}>Previous stage</button>}
-      {stage < 3 ? <button type="button" className="btn accent" onClick={() => { setStage(stage + 1); setSelectedId(null) }}>Next stage →</button> : <Link className="btn accent" to="/briefing">Continue investigation →</Link>}
+      {stage < 3 ? <button type="button" className="btn accent" onClick={() => { setStage(stage + 1); setSelectedId(null) }}>Next stage →</button> : <Link className="btn accent" to="/suspect-review">Review suspects →</Link>}
     </div>
   </main>
 }
