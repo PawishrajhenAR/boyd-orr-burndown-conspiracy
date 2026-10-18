@@ -29,7 +29,7 @@ export default function RegisterPage() {
       <div><p className="eyebrow">CASE FILE #1105</p><h1>The Register</h1>
         <p>{c ? `${c.students.length} students on campus. Select a card to reveal its student.` : 'Loading the student register…'}</p>
       </div>
-      <Link className="btn accent" to="/briefing">Begin investigation →</Link>
+      <Link className="btn accent" to="/first-sweep">Begin investigation →</Link>
     </header>
     <div className="register-toolbar">
       <label htmlFor="register-search">Search ID or name</label>

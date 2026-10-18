@@ -22,3 +22,5 @@ P5 visualisation files remain owned by P5. P4 mounts those existing components i
 - Batch 1: [shared dark theme and title-page cleanup](04_theme_alignment/NOTES.md).
 
 - Batch 2: [searchable student register](05_student_register/NOTES.md).
+
+- Batch 3: [first evidence sweep](06_first_sweep/NOTES.md).
