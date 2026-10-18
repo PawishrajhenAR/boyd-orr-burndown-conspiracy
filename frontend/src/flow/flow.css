@@ -388,7 +388,7 @@ body,
 .case-dossier { display: none; }
 
 @media print {
-  @page { size: A4 portrait; margin: 12mm 13mm; }
+  @page { size: A4 portrait; margin: 0; }
 
   html, body, #root { width: auto; height: auto; min-height: 0; margin: 0; background: #fff; color: #29241e; }
   body { font-family: 'Inter', Arial, sans-serif; font-size: 9pt; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
@@ -398,7 +398,7 @@ body,
   .no-print { display: none !important; }
   .case-result { display: block; width: 100%; height: auto; margin: 0; padding: 0; color: #29241e; }
   .case-result > :not(.case-dossier) { display: none !important; }
-  .case-dossier { display: block; width: 100%; color: #29241e; font-family: 'Inter', Arial, sans-serif; font-size: 8.5pt; line-height: 1.38; }
+  .case-dossier { display: block; box-sizing: border-box; width: 100%; padding: 12mm 13mm; color: #29241e; font-family: 'Inter', Arial, sans-serif; font-size: 8.5pt; line-height: 1.38; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
   .dossier-header { border-bottom: 1.2pt solid #332920; padding-bottom: 5mm; }
   .dossier-topline { display: flex; justify-content: space-between; border-bottom: 0.5pt solid #c9b99d; padding-bottom: 2mm; color: #6b6257; font: 600 7pt 'JetBrains Mono', monospace; letter-spacing: 0.12em; text-transform: uppercase; }
   .dossier-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8mm; padding-top: 4mm; }
